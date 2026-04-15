@@ -1,0 +1,45 @@
+{
+  "name": "webgpu-particles",
+  "version": "0.0.1",
+  "description": "An experimentation with webgpu. Used to implement a particle renderer.",
+  "keywords": [
+    "webgpu",
+    "particles",
+    "library"
+  ],
+  "homepage": "https://github.com/stamps9k/webgpu-particles#readme",
+  "bugs": {
+    "url": "https://github.com/stamps9k/webgpu-particles/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stamps9k/webgpu-particles.git"
+  },
+  "license": "ISC",
+  "author": "James Stamp",
+  "type": "module",
+  "main": "./index.mjs",
+  "module": "./index.mjs",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "import": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "vitest",
+    "build": "tsup && tsc --emitDeclarationOnly --outDir dist && cp package.json ./dist/package.json",
+    "dev": "concurrently \"tsup --watch\" \"tsc --emitDeclarationOnly --outDir dist --watch\""
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
+    "concurrently": "^9.2.1",
+    "eslint": "^10.2.0",
+    "prettier": "^3.8.2",
+    "tsup": "^8.5.1",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.4"
+  }
+}
