@@ -13,11 +13,13 @@ export function hello_particles(): string {
  * Initiliasize the system in preparation of use
  * 
  * @param canvas - the canvas element to tie the particles to.
+ * @param max_particles - the maximum number of particles to render.
  * 
  * @returns A Promise to give a particles context for use by the website  
  */
-export function init(canvas: HTMLCanvasElement,): Promise<ParticleEngine> {
-  return ParticleEngine.init(canvas);
+export function init(canvas: HTMLCanvasElement, max_particles: number = 10000): Promise<ParticleEngine> {
+  return ParticleEngine.init(canvas, max_particles);
 } 
 
 export { ParticleEngine } from './public/ParticleEngine';
+export { ParticleType } from './public/enums/ParticleTypes';

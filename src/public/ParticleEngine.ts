@@ -1,15 +1,77 @@
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
+import { compute_shader } from "../internal/shaders/particle.comp";
+import { vert_shader } from "../internal/shaders/particle.vert";
+import { frag_shader } from "../internal/shaders/particle.frag";
+import { ParticleType } from "./enums/ParticleTypes";
 
+/** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
+	private MAX_PARTICLES = 10000;
+	private PARTICLE_STRIDE = 48
+	private WORKGROUP_SIZE = 10;
 	private ctx: WebGPUContext;
+	private particle_count: number;
+	private particle_type: ParticleType;
+	private particle_size: number;
+	private last_time: number = performance.now();
 
-	private constructor(ctx: WebGPUContext) {
+	/**
+	 * 
+	 * Construct a new particle engine instance.
+	 * Called by the static init function to enable the async nature of the 
+	 * generation of WebGPU contexts
+	 * 
+	 * @param ctx - the WebGPUContext created in the init function 
+	 * @param max_particles - the max number of particles requested by the user
+	 * @param particle_stride - The size of each particle in GPU memory
+	 */
+	private constructor(ctx: WebGPUContext, max_particles: number, particle_stride: number) {
 		this.ctx = ctx;
+		this.MAX_PARTICLES = max_particles;
+		this.PARTICLE_STRIDE = particle_stride;
+		this.particle_count = 0;
+		this.particle_type = ParticleType.Square;
+		this.particle_size = 1;
+		this.last_time = performance.now();
 	}
 
 	/**
 	 * 
-	 * Checks that the context is operating as expected by turning the canvaas red.
+	 * Start the animation of the particles
+	 * 
+	 */
+	public start() {
+    requestAnimationFrame(this.animate_particles);
+  }
+
+	/**
+	 * 
+	 * Handle each frame of animation tick.
+	 * Passed to requestAnimationFrame to drive the particle simulation loop.
+	 * Note use of arrow notation. This keeps this in scope at all times. 
+	 * 
+	 */
+	public animate_particles = () => {
+		const now       = performance.now();
+    const deltaTime = (now - this.last_time) / 1000;  // seconds
+    this.last_time        = now;
+
+    // ── update uniforms ───────────────────────────────────────────────────────
+    const uniform_data = new Float32Array([deltaTime, now / 1000, 0, 0]);
+		this.ctx.writeBuffer("uniform_buffer", 0, uniform_data);
+
+		const encoder = this.ctx.beginFrame();
+    this.ctx.build_compute_pass(encoder, uniform_data, this.MAX_PARTICLES, this.WORKGROUP_SIZE);
+		this.ctx.build_render_pass(encoder, uniform_data, this.MAX_PARTICLES);
+
+		// ── submit ────────────────────────────────────────────────────────────────
+    this.ctx.endFrame(encoder);
+    requestAnimationFrame(this.animate_particles);
+	}
+
+	/**
+	 * 
+	 * Check that the context is operating as expected by turning the canvaas red.
 	 * 
 	 */
 	context_check() {
@@ -24,17 +86,65 @@ export class ParticleEngine {
 
 	/**
 	 * 
-	 * Initiliasize the particle engine in preparation of use
+	 * Generate all the raw particle data for the initial set of particles
+	 * 
+	 */
+	private seedParticleBuffer() {
+		const data = new Float32Array(this.MAX_PARTICLES * 12);
+
+		for (let i = 0; i < this.MAX_PARTICLES; i++) {
+			const offset = i * 12;
+
+			// position (vec2f) — scatter randomly so they don't all spawn at once
+			data[offset + 0] = (Math.random() - 0.5) * 2.0; // x
+			data[offset + 1] = (Math.random() - 0.5) * 2.0; // y
+
+			// velocity (vec2f)
+			data[offset + 2] = (Math.random() - 0.5) * 0.8; // vx
+			data[offset + 3] =  Math.random() * 0.8 + 0.2;  // vy
+
+			// color (vec4f)
+			data[offset + 4] = Math.random(); // r
+			data[offset + 5] = Math.random(); // g
+			data[offset + 6] = Math.random(); // b
+			data[offset + 7] = 1.0;           // a
+
+			// life — randomise so they don't all die on the same frame
+			data[offset + 8]  = Math.random(); // life
+			data[offset + 9]  = 1.0;           // maxLife
+			data[offset + 10] = Math.random() * 8.0 + 4.0; // size (4–12px)
+			data[offset + 11] = 0.0;           // _pad
+		}
+
+		this.ctx.writeBuffer("particle_buffer", 0, data);
+	}
+
+	/**
+	 * 
+	 * Initilize the particle engine in preparation of use
 	 * 
 	 * @param canvas - the canvas element to tie the particles to.
 	 * @param options - any special options
-	 * @returns 
+	 * @returns - The created ParticleEngine
 	 */
 	static async init(
     canvas: HTMLCanvasElement,
-    options: WebGPUContextOptions = {},
+		max_particles: number = 10000,
+		options: WebGPUContextOptions = {},
   ): Promise<ParticleEngine> {
-		const tmp_ctx = await WebGPUContext.init(canvas, options);
-		return new ParticleEngine(tmp_ctx);
+		const PARTICLE_STRIDE = 48
+
+		const tmp_ctx = await WebGPUContext.init(canvas, options, {
+			"compute": compute_shader,
+			"vert": vert_shader, 
+			"frag": frag_shader },
+			max_particles,
+			PARTICLE_STRIDE
+		);
+
+		const result: ParticleEngine = new ParticleEngine(tmp_ctx, max_particles, PARTICLE_STRIDE);
+		result.seedParticleBuffer();
+
+		return result;
 	}
 }
