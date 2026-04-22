@@ -22,9 +22,7 @@ fn fs_main(in: FragmentIn) -> @location(0) vec4f {
 
     // Soft falloff — bright core, fades to transparent edge
     let alpha = smoothstep(1.0, 0.0, dist) * in.color.a;
-		//let alpha = in.color.a;
 
     return vec4f(in.color.rgb, alpha);
-		//return vec4f(alpha, 0.0f, 0.0f, 1.0f);
 }
 `

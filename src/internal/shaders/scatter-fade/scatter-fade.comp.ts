@@ -44,7 +44,6 @@ fn respawn(i: u32) -> Particle {
 	p.velocity = vec2f((r1 - 0.5) * 0.8, r2 * 0.8 + 0.2); // fan upward
 	p.color    = vec4f(r3, r4, 1.0 - r3, 1.0);            // random hue
 	p.life     = 1.0;                                     // fully alive
-	//p.maxLife = 50;
 	p.maxLife  = r7 * 2.0 + 0.5;  												// 0.5–2.5 seconds
 	p.size     = r1 * 8.0 + 4.0;                          // 4–12 px
 	p._pad     = 0.0;
@@ -70,10 +69,10 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
 	}
 
 	// Apply gravity
-	//p.velocity.y -= 0.4 * uniforms.deltaTime;
+	p.velocity.y -= 0.4 * uniforms.deltaTime;
 
 	// Integrate position
-	//p.position += p.velocity * uniforms.deltaTime;
+	p.position += p.velocity * uniforms.deltaTime;
 
 	// Fade alpha as life drains
 	p.color.a = p.life;
