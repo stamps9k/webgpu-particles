@@ -1,7 +1,7 @@
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
-import { compute_shader } from "../internal/shaders/particle.comp";
-import { vert_shader } from "../internal/shaders/particle.vert";
-import { frag_shader } from "../internal/shaders/particle.frag";
+import { compute_shader } from "../internal/shaders/scatter-fade/scatter-fade.comp";
+import { vert_shader } from "../internal/shaders/scatter-fade/scatter-fade.vert";
+import { frag_shader } from "../internal/shaders/scatter-fade/scatter-fade.frag";
 import { ParticleType } from "./enums/ParticleTypes";
 
 /** Manages the WebGPU particle simulation lifecycle */

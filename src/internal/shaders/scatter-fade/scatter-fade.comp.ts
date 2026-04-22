@@ -37,13 +37,15 @@ fn respawn(i: u32) -> Particle {
 	let r4 = rand(f32(i) * 4.0);
 	let r5 = rand(f32(i) * 5.0);
 	let r6 = rand(f32(i) * 6.0);
+	let r7 = rand(f32(i) * 7.0);
 
 	p.position = vec2f(r5 * 2.0 - 1.0, r6 * 2.0 - 1.0);   // random position across the full clip space [-1, 1]
-	//p.position = vec2f(0.0, 0.0);                          // emitter origin
+	//p.position = vec2f(0.0, 0.0);                       // emitter origin
 	p.velocity = vec2f((r1 - 0.5) * 0.8, r2 * 0.8 + 0.2); // fan upward
 	p.color    = vec4f(r3, r4, 1.0 - r3, 1.0);            // random hue
-	p.life     = 1.0;                                      // fully alive
-	p.maxLife  = 1.0;
+	p.life     = 1.0;                                     // fully alive
+	//p.maxLife = 50;
+	p.maxLife  = r7 * 2.0 + 0.5;  												// 0.5–2.5 seconds
 	p.size     = r1 * 8.0 + 4.0;                          // 4–12 px
 	p._pad     = 0.0;
 	return p;
@@ -68,10 +70,10 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
 	}
 
 	// Apply gravity
-	p.velocity.y -= 0.4 * uniforms.deltaTime;
+	//p.velocity.y -= 0.4 * uniforms.deltaTime;
 
 	// Integrate position
-	p.position += p.velocity * uniforms.deltaTime;
+	//p.position += p.velocity * uniforms.deltaTime;
 
 	// Fade alpha as life drains
 	p.color.a = p.life;
