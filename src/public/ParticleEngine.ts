@@ -9,6 +9,7 @@ export class ParticleEngine {
 	private MAX_PARTICLES = 10000;
 	private PARTICLE_STRIDE = 48
 	private WORKGROUP_SIZE = 10;
+	private canvas: HTMLCanvasElement;
 	private ctx: WebGPUContext;
 	private particle_count: number;
 	private particle_type: ParticleType;
@@ -25,7 +26,8 @@ export class ParticleEngine {
 	 * @param max_particles - the max number of particles requested by the user
 	 * @param particle_stride - The size of each particle in GPU memory
 	 */
-	private constructor(ctx: WebGPUContext, max_particles: number, particle_stride: number) {
+	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, max_particles: number, particle_stride: number) {
+		this.canvas = canvas;
 		this.ctx = ctx;
 		this.MAX_PARTICLES = max_particles;
 		this.PARTICLE_STRIDE = particle_stride;
@@ -57,7 +59,7 @@ export class ParticleEngine {
     this.last_time        = now;
 
     // ── update uniforms ───────────────────────────────────────────────────────
-    const uniform_data = new Float32Array([deltaTime, now / 1000, 0, 0]);
+    const uniform_data = new Float32Array([deltaTime, now / 1000, this.canvas.width, this.canvas.height]);
 		this.ctx.writeBuffer("uniform_buffer", 0, uniform_data);
 
 		const encoder = this.ctx.beginFrame();
@@ -142,7 +144,7 @@ export class ParticleEngine {
 			PARTICLE_STRIDE
 		);
 
-		const result: ParticleEngine = new ParticleEngine(tmp_ctx, max_particles, PARTICLE_STRIDE);
+		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, max_particles, PARTICLE_STRIDE);
 		result.seedParticleBuffer();
 
 		return result;

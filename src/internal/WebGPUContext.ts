@@ -6,7 +6,6 @@ export interface WebGPUContextOptions {
 
 /** Manages the various items required by the WebGPU API */
 export class WebGPUContext {
-  readonly canvas: HTMLCanvasElement;
   readonly adapter: GPUAdapter;
   readonly device: GPUDevice;
   readonly context: GPUCanvasContext;
@@ -25,7 +24,6 @@ export class WebGPUContext {
 	 * Called by the static init function to enable the async nature of the 
 	 * generation of WebGPU contexts
 	 * 
-	 * @param canvas - The canvas element in the browser DOM
 	 * @param adapter - The standard WebGPU Adapter
 	 * @param device - The standard WebGPU device
 	 * @param context - The standard WebGPU context
@@ -37,7 +35,6 @@ export class WebGPUContext {
 	 * @param bind_groups - A list of all bindgroups used by WebGPU
 	 */
   private constructor(
-    canvas: HTMLCanvasElement,
     adapter: GPUAdapter,
     device: GPUDevice,
     context: GPUCanvasContext,
@@ -48,7 +45,6 @@ export class WebGPUContext {
 		render_pipeline: GPURenderPipeline,
 		bind_groups: Record<string, GPUBindGroup>,
   ) {
-    this.canvas = canvas;
     this.adapter = adapter;
     this.device = device;
     this.context = context;
@@ -139,7 +135,7 @@ export class WebGPUContext {
 		var buffers: Record<string, GPUBuffer> = {};
 		buffers["uniform_buffer"] = device.createBuffer({
 				label: 'uniforms',
-				size: 16,  // deltaTime(4) + time(4) + pad(8)
+				size: 16,  // deltaTime(4) + time(4) + size (8)
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 		buffers["particle_buffer"] = device.createBuffer({
@@ -173,13 +169,13 @@ export class WebGPUContext {
 		bind_groups["render_bind_group"] = device.createBindGroup({
 			layout: render_pipeline.getBindGroupLayout(0),
 			entries: [
+					{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
 					{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
 			],
 		});
 
 		// -- Create an object to hold all variables
     return new WebGPUContext(
-      canvas,
       adapter,
       device,
       context,
@@ -291,23 +287,6 @@ export class WebGPUContext {
 	 */
   writeBuffer(buffer_name: string, bufferOffset = 0, data: BufferSource): void {
     this.device.queue.writeBuffer(this.buffers[buffer_name], bufferOffset, data);
-  }
-
-  // -------------------------------------------------------------------------
-  // Resize
-  // -------------------------------------------------------------------------
-
-	/**
-	 * 
-	 * Resize the WebGPU rendersize.
-	 * Used on user changing the size of the canvas
-	 * 
-	 * @param width - The new width
-	 * @param height - The new height
-	 */
-  resize(width: number, height: number): void {
-    this.canvas.width = width;
-    this.canvas.height = height;
   }
 
   // -------------------------------------------------------------------------

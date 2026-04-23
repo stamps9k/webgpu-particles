@@ -5,6 +5,7 @@ export const vert_shader = `
 struct Uniforms {
 	deltaTime : f32,
 	time      : f32,
+	canvasSize: vec2f
 }
 
 struct Particle {
@@ -70,7 +71,7 @@ fn vs_main(
 
 	// Scale the unit quad by the particle's size (convert px → clip space)
 	// Assumes a canvas of 800×600 — we'll move this into uniforms later
-	let pixelScale = vec2f(p.size / 800.0, p.size / 600.0);
+	let pixelScale = vec2f(p.size / uniforms.canvasSize[0], p.size / uniforms.canvasSize[1]);
 	let localPos   = corner * pixelScale;
 
 	// Offset by the particle's world position (already in [-1, 1] clip space)

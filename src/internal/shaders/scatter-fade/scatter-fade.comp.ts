@@ -5,6 +5,7 @@ export const compute_shader = `
 struct Uniforms {
 	deltaTime : f32,
 	time      : f32,
+	canvasSize: vec2f
 }
 
 struct Particle {
