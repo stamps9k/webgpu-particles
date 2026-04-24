@@ -5,7 +5,12 @@ export const vert_shader = `
 struct Uniforms {
 	deltaTime : f32,
 	time      : f32,
-	canvasSize: vec2f
+	canvasSize: vec2f,
+	emitterPos : vec2f,   // used by all types
+	emitterType: f32,     // 0 = point, 1 = circle, 2 = rect
+	emitterP1  : f32,     // circle: radius | rect: width
+	emitterP2  : f32,     // rect: height
+	_pad       : f32,
 }
 
 struct Particle {

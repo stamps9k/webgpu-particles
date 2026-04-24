@@ -133,9 +133,15 @@ export class WebGPUContext {
 
 		// -- Create the buffers
 		var buffers: Record<string, GPUBuffer> = {};
+		/* 
+		 * Uniform buffer is size 40 with the structure:
+		 * deltaTime(4) + time(4) + canvasSize(8) + 
+		 * emitterType(4) + emitterPos(8) + emitterP1(4) + emitterP2(4) +
+		 * _pad(4)
+		 */
 		buffers["uniform_buffer"] = device.createBuffer({
 				label: 'uniforms',
-				size: 16,  // deltaTime(4) + time(4) + size (8)
+				size: 40, 
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 		buffers["particle_buffer"] = device.createBuffer({

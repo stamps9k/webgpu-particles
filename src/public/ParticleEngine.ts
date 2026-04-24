@@ -3,12 +3,14 @@ import { compute_shader } from "../internal/shaders/scatter-fade/scatter-fade.co
 import { vert_shader } from "../internal/shaders/scatter-fade/scatter-fade.vert";
 import { frag_shader } from "../internal/shaders/scatter-fade/scatter-fade.frag";
 import { ParticleType } from "./enums/ParticleTypes";
+import { Emitter } from "./types/Emitters";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
 	private MAX_PARTICLES = 10000;
 	private PARTICLE_STRIDE = 48
 	private WORKGROUP_SIZE = 10;
+	private emitter: Emitter;
 	private canvas: HTMLCanvasElement;
 	private ctx: WebGPUContext;
 	private particle_count: number;
@@ -29,6 +31,7 @@ export class ParticleEngine {
 	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, max_particles: number, particle_stride: number) {
 		this.canvas = canvas;
 		this.ctx = ctx;
+		this.emitter = { type: 'point', x: 0, y: 0};
 		this.MAX_PARTICLES = max_particles;
 		this.PARTICLE_STRIDE = particle_stride;
 		this.particle_count = 0;
@@ -58,8 +61,21 @@ export class ParticleEngine {
     const deltaTime = (now - this.last_time) / 1000;  // seconds
     this.last_time        = now;
 
+		const emitterData = this.generateEmitterData();
+
     // ── update uniforms ───────────────────────────────────────────────────────
-    const uniform_data = new Float32Array([deltaTime, now / 1000, this.canvas.width, this.canvas.height]);
+    const uniform_data = new Float32Array([
+			deltaTime, 
+			now / 1000, 
+			this.canvas.width, 
+			this.canvas.height,
+			emitterData[0],
+			emitterData[1],
+			emitterData[2],
+			emitterData[3],
+			emitterData[4],
+			emitterData[5]
+		]);
 		this.ctx.writeBuffer("uniform_buffer", 0, uniform_data);
 
 		const encoder = this.ctx.beginFrame();
@@ -97,9 +113,34 @@ export class ParticleEngine {
 		for (let i = 0; i < this.MAX_PARTICLES; i++) {
 			const offset = i * 12;
 
+			//Generate the particles position based on emitter type
+			let x, y;
+			switch (this.emitter.type) {
+				case 'point':
+					x = this.emitter.x;
+					y = this.emitter.y;
+					break;
+
+				case 'circle':
+					const angle  = Math.random() * Math.PI * 2;
+					const radius = Math.sqrt(Math.random()) * this.emitter.radius;
+					x = this.emitter.x + Math.cos(angle) * radius;
+					y = this.emitter.y + Math.sin(angle) * radius;
+					break;
+
+				case 'rect':
+					x = this.emitter.x + (Math.random() - 0.5) * this.emitter.width;
+					y = this.emitter.y + (Math.random() - 0.5) * this.emitter.height;
+					break;
+
+				default:
+					x = 0;
+					y = 0;
+			}
+
 			// position (vec2f) — scatter randomly so they don't all spawn at once
-			data[offset + 0] = (Math.random() - 0.5) * 2.0; // x
-			data[offset + 1] = (Math.random() - 0.5) * 2.0; // y
+			data[offset + 0] = x // x
+			data[offset + 1] = y // y
 
 			// velocity (vec2f)
 			data[offset + 2] = (Math.random() - 0.5) * 0.8; // vx
@@ -120,6 +161,45 @@ export class ParticleEngine {
 
 		this.ctx.writeBuffer("particle_buffer", 0, data);
 	}
+
+	/**
+	 * 
+	 * Convert the emitter object to a data format that can be ingested by the WebGPU Uniform Buffer.
+	 * 
+	 * @returns the generated Emitter data ready to be passed into the WebGPU buffer
+	 * 
+	 */
+	private generateEmitterData(): Float32Array {
+		switch (this.emitter.type) {
+    	case 'point':
+				return new Float32Array([
+					this.emitter.x, // x
+					this.emitter.y, // y
+					0.0,						// Emitter type
+					0.0,						// Not used by a point emitter
+					0.0,						// Not used by a point emitter
+					0.0							// Padding
+				]);
+    	case 'circle':
+				return new Float32Array([
+					this.emitter.x,				// x position
+					this.emitter.y,				// y position
+					1.0,									// Emitter type
+					this.emitter.radius,	// Circle emitter radius
+					0.0,									// Not used by a circle emitter
+					0.0										// Padding
+				]);
+    	case 'rect':
+				return new Float32Array([
+					this.emitter.x,				// x
+					this.emitter.y,				// y
+					2.0,									// Emitter type
+					this.emitter.width,		// Emitter width
+					this.emitter.height,	// Emitter height
+					0.0										// Padding
+				]);
+			};
+		}
 
 	/**
 	 * 

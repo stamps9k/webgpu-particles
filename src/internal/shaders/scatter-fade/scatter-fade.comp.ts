@@ -5,7 +5,12 @@ export const compute_shader = `
 struct Uniforms {
 	deltaTime : f32,
 	time      : f32,
-	canvasSize: vec2f
+	canvasSize: vec2f,
+	emitterPos : vec2f,   // used by all types
+	emitterType: f32,     // 0 = point, 1 = circle, 2 = rect
+	emitterP1  : f32,     // circle: radius | rect: width
+	emitterP2  : f32,     // rect: height
+	_pad       : f32,
 }
 
 struct Particle {
@@ -15,7 +20,7 @@ struct Particle {
 	life     : f32,
 	maxLife  : f32,
 	size     : f32,
-	_pad     : f32,
+	_pad     : f32
 }
 
 // ── bindings ─────────────────────────────────────────────────────────────────
@@ -40,8 +45,23 @@ fn respawn(i: u32) -> Particle {
 	let r6 = rand(f32(i) * 6.0);
 	let r7 = rand(f32(i) * 7.0);
 
-	p.position = vec2f(r5 * 2.0 - 1.0, r6 * 2.0 - 1.0);   // random position across the full clip space [-1, 1]
-	//p.position = vec2f(0.0, 0.0);                       // emitter origin
+	var spawnPos: vec2f;
+	if (uniforms.emitterType == 0.0) {
+		// point — spawn exactly at emitter position
+		spawnPos = uniforms.emitterPos;
+	} else if (uniforms.emitterType == 1.0) {
+		// circle — random point within radius
+		let angle  = rand(f32(i) * 7.0) * 6.2832;
+		let radius = sqrt(rand(f32(i) * 8.0)) * uniforms.emitterP1;
+		spawnPos   = uniforms.emitterPos + vec2f(cos(angle), sin(angle)) * radius;
+	} else if (uniforms.emitterType == 2.0) {
+		// rect — random point within width/height
+		let rx = (rand(f32(i) * 7.0) - 0.5) * uniforms.emitterP1;
+		let ry = (rand(f32(i) * 8.0) - 0.5) * uniforms.emitterP2;
+		spawnPos = uniforms.emitterPos + vec2f(rx, ry);
+	}
+
+	p.position = spawnPos;   // random position across the full clip space [-1, 1]
 	p.velocity = vec2f((r1 - 0.5) * 0.8, r2 * 0.8 + 0.2); // fan upward
 	p.color    = vec4f(r3, r4, 1.0 - r3, 1.0);            // random hue
 	p.life     = 1.0;                                     // fully alive
