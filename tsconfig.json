@@ -4,10 +4,10 @@
     "module": "ESNext",
     "moduleResolution": "bundler",
     "declaration": true,
-    "types": ["@webgpu/types"],
+    "types": ["@webgpu/types", "node"],
     "strict": true,
     "skipLibCheck": true,
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": ["src", "tsup.config.ts"]
 }

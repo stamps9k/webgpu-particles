@@ -1,5 +1,3 @@
-export const vert_shader = `
-
 // ── structs (shared with compute shader) ─────────────────────────────────────
 
 struct Uniforms {
@@ -88,4 +86,3 @@ fn vs_main(
 	out.uv           = uv;
 	return out;
 }
-`

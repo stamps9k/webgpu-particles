@@ -1,7 +1,4 @@
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
-import { compute_shader } from "../internal/shaders/scatter-fade/scatter-fade.comp";
-import { vert_shader } from "../internal/shaders/scatter-fade/scatter-fade.vert";
-import { frag_shader } from "../internal/shaders/scatter-fade/scatter-fade.frag";
 import { ParticleType } from "./enums/ParticleTypes";
 import { Emitter } from "./types/Emitters";
 
@@ -32,6 +29,8 @@ export class ParticleEngine {
 		this.canvas = canvas;
 		this.ctx = ctx;
 		this.emitter = { type: 'point', x: 0, y: 0};
+		//this.emitter = { type: 'rect',   x: 0, y: 0, width: 2, height: 2 };
+		//this.emitter = { type: 'circle', x: 0, y: 0, radius: 0.5 };
 		this.MAX_PARTICLES = max_particles;
 		this.PARTICLE_STRIDE = particle_stride;
 		this.particle_count = 0;
@@ -216,10 +215,9 @@ export class ParticleEngine {
   ): Promise<ParticleEngine> {
 		const PARTICLE_STRIDE = 48
 
-		const tmp_ctx = await WebGPUContext.init(canvas, options, {
-			"compute": compute_shader,
-			"vert": vert_shader, 
-			"frag": frag_shader },
+		const tmp_ctx = await WebGPUContext.init(
+			canvas, 
+			options,
 			max_particles,
 			PARTICLE_STRIDE
 		);

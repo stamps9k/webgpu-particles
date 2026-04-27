@@ -1,5 +1,3 @@
-export const compute_shader = `
-
 // ── structs ──────────────────────────────────────────────────────────────────
 
 struct Uniforms {
@@ -100,4 +98,3 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
 
 	particles[i] = p;
 }
-`

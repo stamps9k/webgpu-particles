@@ -1,4 +1,3 @@
-export const frag_shader = `
 // ── input from vertex shader ──────────────────────────────────────────────────
 
 struct FragmentIn {
@@ -25,4 +24,3 @@ fn fs_main(in: FragmentIn) -> @location(0) vec4f {
 
     return vec4f(in.color.rgb, alpha);
 }
-`

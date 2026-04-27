@@ -1,3 +1,10 @@
+/*
+import scatter_frag_shader from './shaders/scatter-fade/scatter-fade.frag.wgsl';
+import scatter_vert_shader from './shaders/scatter-fade/scatter-fade.vert.wgsl';
+import scatter_comp_shader from './shaders/scatter-fade/scatter-fade.comp.wgsl';
+*/
+import { scatter_fade_comp, scatter_fade_vert, scatter_fade_frag } from './shaders';
+
 /** Custom options that the I may want to use */
 export interface WebGPUContextOptions {
   powerPreference?: GPUPowerPreference;
@@ -74,7 +81,6 @@ export class WebGPUContext {
   static async init(
     canvas: HTMLCanvasElement,
     options: WebGPUContextOptions = {},
-		shaders_text: Record<string, string>,
 		max_particles: number,
 		particle_stride: number
   ): Promise<WebGPUContext> {
@@ -114,6 +120,7 @@ export class WebGPUContext {
     });
 
 		// -- Create the shaders
+		var shaders_text: Record<string, string> = await this.loadShaders("scatter-fade");
 		var shaders_compiled: Record<string, GPUShaderModule> = {};
 		shaders_compiled["compute"] = device.createShaderModule({ 
 			code: shaders_text["compute"], 
@@ -308,6 +315,23 @@ export class WebGPUContext {
   // -------------------------------------------------------------------------
   // Private helpers
   // -------------------------------------------------------------------------
+
+
+	/**
+	 * 
+	 * Dynamically load the particle engine shaders
+	 * 
+	 * @param name - The name for the shader set
+	 * @returns the shaders
+	 */
+	private static async loadShaders(name: string) {
+    return {
+        compute:  scatter_fade_comp,
+        vert:   scatter_fade_vert,
+        frag: scatter_fade_frag,
+    };
+}
+
 
 	/**
 	 * Create the compute pipeline

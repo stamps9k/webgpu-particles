@@ -33,6 +33,7 @@
     "dev": "concurrently \"tsup --watch\" \"tsc --emitDeclarationOnly --outDir dist --watch\""
   },
   "devDependencies": {
+    "@types/node": "^25.6.0",
     "@typescript-eslint/eslint-plugin": "^8.58.2",
     "@typescript-eslint/parser": "^8.58.2",
     "@webgpu/types": "^0.1.69",
