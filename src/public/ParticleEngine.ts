@@ -25,12 +25,10 @@ export class ParticleEngine {
 	 * @param max_particles - the max number of particles requested by the user
 	 * @param particle_stride - The size of each particle in GPU memory
 	 */
-	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, max_particles: number, particle_stride: number) {
+	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, emitter: Emitter, max_particles: number, particle_stride: number) {
 		this.canvas = canvas;
 		this.ctx = ctx;
-		this.emitter = { type: 'point', x: 0, y: 0};
-		//this.emitter = { type: 'rect',   x: 0, y: 0, width: 2, height: 2 };
-		//this.emitter = { type: 'circle', x: 0, y: 0, radius: 0.5 };
+		this.emitter = emitter;
 		this.MAX_PARTICLES = max_particles;
 		this.PARTICLE_STRIDE = particle_stride;
 		this.particle_count = 0;
@@ -161,6 +159,20 @@ export class ParticleEngine {
 		this.ctx.writeBuffer("particle_buffer", 0, data);
 	}
 
+
+	private static generate_emitter(emitter_shape: string): Emitter {
+ 		switch (emitter_shape.toUpperCase()) {
+			case "POINT":
+				return { type: 'point', x: 0, y: 0 };
+			case "CIRCLE":
+				return { type: 'circle', x: 0, y: 0, radius: 0.5 };;
+			case "RECTANGLE":
+				return { type: 'rect',   x: 0, y: 0, width: 2, height: 2 };
+			default:
+				return { type: 'point', x: 0, y: 0 };
+		}
+	}
+
 	/**
 	 * 
 	 * Convert the emitter object to a data format that can be ingested by the WebGPU Uniform Buffer.
@@ -205,12 +217,17 @@ export class ParticleEngine {
 	 * Initilize the particle engine in preparation of use
 	 * 
 	 * @param canvas - the canvas element to tie the particles to.
-	 * @param options - any special options
+	 * @param max_particles - the number of particles to render.
+	 * @param emitter_shape - The shape that the particles are emmited as.
+	 * @param shader_set - the set of shaders to use.
+	 * @param options - any special options.
 	 * @returns - The created ParticleEngine
 	 */
 	static async init(
     canvas: HTMLCanvasElement,
 		max_particles: number = 10000,
+		emitter_shape: string,
+		shader_set: string,
 		options: WebGPUContextOptions = {},
   ): Promise<ParticleEngine> {
 		const PARTICLE_STRIDE = 48
@@ -219,10 +236,11 @@ export class ParticleEngine {
 			canvas, 
 			options,
 			max_particles,
-			PARTICLE_STRIDE
+			shader_set,
+			PARTICLE_STRIDE,
 		);
 
-		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, max_particles, PARTICLE_STRIDE);
+		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, this.generate_emitter(emitter_shape), max_particles, PARTICLE_STRIDE);
 		result.seedParticleBuffer();
 
 		return result;

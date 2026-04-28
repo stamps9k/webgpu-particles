@@ -82,6 +82,7 @@ export class WebGPUContext {
     canvas: HTMLCanvasElement,
     options: WebGPUContextOptions = {},
 		max_particles: number,
+		shader_set: string,
 		particle_stride: number
   ): Promise<WebGPUContext> {
 		// -- Create and configure the context
@@ -120,7 +121,7 @@ export class WebGPUContext {
     });
 
 		// -- Create the shaders
-		var shaders_text: Record<string, string> = await this.loadShaders("scatter-fade");
+		var shaders_text: Record<string, string> = await this.loadShaders(shader_set);
 		var shaders_compiled: Record<string, GPUShaderModule> = {};
 		shaders_compiled["compute"] = device.createShaderModule({ 
 			code: shaders_text["compute"], 
