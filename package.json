@@ -29,8 +29,8 @@
   },
   "scripts": {
     "test": "vitest",
-    "build": "tsup && tsc --emitDeclarationOnly --outDir dist && cp package.json ./dist/package.json",
-    "dev": "concurrently \"tsup --watch\" \"tsc --emitDeclarationOnly --outDir dist --watch\""
+    "build": "tsup && tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist && cp package.json ./dist/package.json",
+    "dev": "concurrently \"tsup --watch\" \"tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist --watch\""
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
