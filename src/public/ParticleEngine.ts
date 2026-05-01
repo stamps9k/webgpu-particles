@@ -26,10 +26,10 @@ export class ParticleEngine {
 	 * @param max_particles - the max number of particles requested by the user
 	 * @param particle_stride - The size of each particle in GPU memory
 	 */
-	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, emitter: Emitter, max_particles: number, particle_stride: number) {
+	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, emitter_shape: string, max_particles: number, particle_stride: number) {
 		this.canvas = canvas;
 		this.ctx = ctx;
-		this.emitter = emitter;
+		this.emitter = this.generate_emitter(emitter_shape, canvas);
 		this.MAX_PARTICLES = max_particles;
 		this.PARTICLE_STRIDE = particle_stride;
 		this.particle_count = 0;
@@ -105,6 +105,11 @@ export class ParticleEngine {
 		this.ctx.endFrame(encoder);
 	}
 
+	public resize(canvas: HTMLCanvasElement) {
+		this.canvas = canvas;
+		this.emitter = this.generate_emitter(this.emitter.type, canvas);
+	}
+
 	/**
 	 * 
 	 * Generate all the raw particle data for the initial set of particles
@@ -166,7 +171,7 @@ export class ParticleEngine {
 	}
 
 
-	private static generate_emitter(emitter_shape: string, canvas: HTMLCanvasElement): Emitter {
+	private generate_emitter(emitter_shape: string, canvas: HTMLCanvasElement): Emitter {
  		switch (emitter_shape.toUpperCase()) {
 			case "POINT":
 				return { type: 'point', x: canvas.width / 2, y: canvas.height / 2 };
@@ -270,7 +275,7 @@ export class ParticleEngine {
 			PARTICLE_STRIDE,
 		);
 
-		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, this.generate_emitter(emitter_shape, canvas), max_particles, PARTICLE_STRIDE);
+		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, emitter_shape, max_particles, PARTICLE_STRIDE);
 		result.seedParticleBuffer();
 
 		return result;
