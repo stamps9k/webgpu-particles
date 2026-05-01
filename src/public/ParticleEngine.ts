@@ -1,3 +1,4 @@
+import { FlagAndOpenMode } from "fs/promises";
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
 import { ParticleType } from "./enums/ParticleTypes";
 import { Emitter } from "./types/Emitters";
@@ -59,6 +60,7 @@ export class ParticleEngine {
     this.last_time        = now;
 
 		const emitterData = this.generateEmitterData();
+		const shader_params = this.generate_shader_params();
 
     // ── update uniforms ───────────────────────────────────────────────────────
     const uniform_data = new Float32Array([
@@ -71,7 +73,11 @@ export class ParticleEngine {
 			emitterData[2],
 			emitterData[3],
 			emitterData[4],
-			emitterData[5]
+			shader_params[0],
+			shader_params[1],
+			shader_params[2],
+			shader_params[3],
+			shader_params[4],
 		]);
 		this.ctx.writeBuffer("uniform_buffer", 0, uniform_data);
 
@@ -140,8 +146,8 @@ export class ParticleEngine {
 			data[offset + 1] = y // y
 
 			// velocity (vec2f)
-			data[offset + 2] = (Math.random() - 0.5) * 0.8; // vx
-			data[offset + 3] =  Math.random() * 0.8 + 0.2;  // vy
+			data[offset + 2] = (Math.random() - 0.5) * 400; // vx
+			data[offset + 3] =  Math.random() * 300 + 0.2;  // vy
 
 			// color (vec4f)
 			data[offset + 4] = Math.random(); // r
@@ -150,28 +156,55 @@ export class ParticleEngine {
 			data[offset + 7] = 1.0;           // a
 
 			// life — randomise so they don't all die on the same frame
-			data[offset + 8]  = Math.random(); // life
-			data[offset + 9]  = 1.0;           // maxLife
-			data[offset + 10] = Math.random() * 8.0 + 4.0; // size (4–12px)
-			data[offset + 11] = 0.0;           // _pad
+			data[offset + 8] = 0.0													// seed
+			data[offset + 9]  = Math.random();							// life
+			data[offset + 10]  = 1.0;           						// maxLife
+			data[offset + 11] = Math.random() * 8.0 + 4.0;	// size (4–12px)
 		}
 
 		this.ctx.writeBuffer("particle_buffer", 0, data);
 	}
 
 
-	private static generate_emitter(emitter_shape: string): Emitter {
+	private static generate_emitter(emitter_shape: string, canvas: HTMLCanvasElement): Emitter {
  		switch (emitter_shape.toUpperCase()) {
 			case "POINT":
-				return { type: 'point', x: 0, y: 0 };
+				return { type: 'point', x: canvas.width / 2, y: canvas.height / 2 };
 			case "CIRCLE":
-				return { type: 'circle', x: 0, y: 0, radius: 0.5 };;
+				return { type: 'circle', x: canvas.width / 2, y: canvas.height / 2, radius: canvas.width / 1.1 };
 			case "RECTANGLE":
-				return { type: 'rect',   x: 0, y: 0, width: 2, height: 2 };
+				return { type: 'rect',   x:canvas.width / 2 , y: canvas.height / 2, width: canvas.width, height: canvas.height };
 			default:
 				return { type: 'point', x: 0, y: 0 };
 		}
 	}
+
+	private generate_shader_params(): Float32Array {
+		switch (this.ctx.shader_set) {
+			case "scatter_fade":
+				return new Float32Array([
+					0.0,
+					0.0,
+					0.0,
+					0.0
+				])
+			case "scatter_swirl":
+				return new Float32Array([
+					150.0,
+					30.0,
+					8.0,
+					0.0
+				])
+			default:
+				return new Float32Array([
+					0.0,
+					0.0,
+					0.0,
+					0.0
+				])
+		}
+	}
+
 
 	/**
 	 * 
@@ -189,7 +222,6 @@ export class ParticleEngine {
 					0.0,						// Emitter type
 					0.0,						// Not used by a point emitter
 					0.0,						// Not used by a point emitter
-					0.0							// Padding
 				]);
     	case 'circle':
 				return new Float32Array([
@@ -198,7 +230,6 @@ export class ParticleEngine {
 					1.0,									// Emitter type
 					this.emitter.radius,	// Circle emitter radius
 					0.0,									// Not used by a circle emitter
-					0.0										// Padding
 				]);
     	case 'rect':
 				return new Float32Array([
@@ -207,7 +238,6 @@ export class ParticleEngine {
 					2.0,									// Emitter type
 					this.emitter.width,		// Emitter width
 					this.emitter.height,	// Emitter height
-					0.0										// Padding
 				]);
 			};
 		}
@@ -240,7 +270,7 @@ export class ParticleEngine {
 			PARTICLE_STRIDE,
 		);
 
-		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, this.generate_emitter(emitter_shape), max_particles, PARTICLE_STRIDE);
+		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, this.generate_emitter(emitter_shape, canvas), max_particles, PARTICLE_STRIDE);
 		result.seedParticleBuffer();
 
 		return result;

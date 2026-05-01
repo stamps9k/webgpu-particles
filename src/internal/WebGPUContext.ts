@@ -1,9 +1,5 @@
-/*
-import scatter_frag_shader from './shaders/scatter-fade/scatter-fade.frag.wgsl';
-import scatter_vert_shader from './shaders/scatter-fade/scatter-fade.vert.wgsl';
-import scatter_comp_shader from './shaders/scatter-fade/scatter-fade.comp.wgsl';
-*/
-import { scatter_fade_comp, scatter_fade_vert, scatter_fade_frag } from './shaders';
+//import { scatter_fade_comp, scatter_fade_vert, scatter_fade_frag } from './shaders';
+import { shader_registry } from "./shaders";
 
 /** Custom options that the I may want to use */
 export interface WebGPUContextOptions {
@@ -17,6 +13,7 @@ export class WebGPUContext {
   readonly device: GPUDevice;
   readonly context: GPUCanvasContext;
   readonly format: GPUTextureFormat;
+	readonly shader_set: string;
 	readonly shaders: Record<string, GPUShaderModule>;
 	readonly compute_pipeline: GPUComputePipeline;
 	readonly render_pipeline: GPURenderPipeline;
@@ -46,6 +43,7 @@ export class WebGPUContext {
     device: GPUDevice,
     context: GPUCanvasContext,
     format: GPUTextureFormat,
+		shader_set: string,
 		shaders: Record<string, GPUShaderModule>,
 		buffers: Record<string, GPUBuffer>,
 		compute_pipeline: GPUComputePipeline,
@@ -56,6 +54,7 @@ export class WebGPUContext {
     this.device = device;
     this.context = context;
     this.format = format;
+		this.shader_set = shader_set;
 		this.shaders = shaders;
 		this.bind_groups = bind_groups;
 		this.buffers = buffers;
@@ -149,7 +148,7 @@ export class WebGPUContext {
 		 */
 		buffers["uniform_buffer"] = device.createBuffer({
 				label: 'uniforms',
-				size: 40, 
+				size: 56, 
 				usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 		});
 		buffers["particle_buffer"] = device.createBuffer({
@@ -194,6 +193,7 @@ export class WebGPUContext {
       device,
       context,
       format,
+			shader_set.replaceAll("-", "_"),
 			shaders_compiled,
 			buffers,
 			compute_pipeline,
@@ -326,11 +326,22 @@ export class WebGPUContext {
 	 * @returns the shaders
 	 */
 	private static async loadShaders(name: string) {
-    return {
-        compute:  scatter_fade_comp,
-        vert:   scatter_fade_vert,
-        frag: scatter_fade_frag,
-    };
+		const s = name.replaceAll("-", "_");
+		const comp = ""
+
+    const compKey = `${s}_comp` as keyof typeof shader_registry;
+		const vertKey = `${s}_vert` as keyof typeof shader_registry;
+		const fragKey = `${s}_frag` as keyof typeof shader_registry;
+
+		const compute = shader_registry[compKey];
+		const vert    = shader_registry[vertKey];
+		const frag    = shader_registry[fragKey];
+
+		if (!compute || !vert || !frag) {
+			throw new Error(`No shaders found for "${name}". Available: ${Object.keys(shader_registry).join(', ')}`);
+		}
+
+		return { compute, vert, frag };
 }
 
 

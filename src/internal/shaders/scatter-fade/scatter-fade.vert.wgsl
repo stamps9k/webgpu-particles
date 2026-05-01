@@ -8,17 +8,21 @@ struct Uniforms {
 	emitterType: f32,     // 0 = point, 1 = circle, 2 = rect
 	emitterP1  : f32,     // circle: radius | rect: width
 	emitterP2  : f32,     // rect: height
-	_pad       : f32,
+	sp0         : f32,
+	sp1         : f32,
+	sp2         : f32,
+	sp3         : f32,
+	sp4					: f32
 }
 
 struct Particle {
 	position : vec2f,
 	velocity : vec2f,
 	color    : vec4f,
+	seed		 : f32,
 	life     : f32,
 	maxLife  : f32,
-	size     : f32,
-	_pad     : f32,
+	size     : f32
 }
 
 // ── bindings ─────────────────────────────────────────────────────────────────
@@ -72,16 +76,12 @@ fn vs_main(
 	let corner = QUAD_POS[vIdx];         // one of 6 corners for this vertex
 	let uv     = QUAD_UV[vIdx];
 
-	// Scale the unit quad by the particle's size (convert px → clip space)
-	// Assumes a canvas of 800×600 — we'll move this into uniforms later
-	let pixelScale = vec2f(p.size / uniforms.canvasSize[0], p.size / uniforms.canvasSize[1]);
-	let localPos   = corner * pixelScale;
-
-	// Offset by the particle's world position (already in [-1, 1] clip space)
-	let clipPos = vec4f(p.position + localPos, 0.0, 1.0);
+	// Convert particle position from pixel space to clip space
+	let pixelPos  = p.position + corner * p.size;
+	let clipPos   = (pixelPos / uniforms.canvasSize) * 2.0 - 1.0;
 
 	var out: VertexOut;
-	out.clipPosition = clipPos;
+	out.clipPosition = vec4f(clipPos.x, -clipPos.y, 0.0, 1.0);
 	out.color        = p.color;
 	out.uv           = uv;
 	return out;

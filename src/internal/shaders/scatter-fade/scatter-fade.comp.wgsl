@@ -8,17 +8,21 @@ struct Uniforms {
 	emitterType: f32,     // 0 = point, 1 = circle, 2 = rect
 	emitterP1  : f32,     // circle: radius | rect: width
 	emitterP2  : f32,     // rect: height
-	_pad       : f32,
+	sp0         : f32,
+	sp1         : f32,
+	sp2         : f32,
+	sp3         : f32,
+	sp4					: f32
 }
 
 struct Particle {
 	position : vec2f,
 	velocity : vec2f,
 	color    : vec4f,
+	seed		 : f32,
 	life     : f32,
 	maxLife  : f32,
 	size     : f32,
-	_pad     : f32
 }
 
 // ── bindings ─────────────────────────────────────────────────────────────────
@@ -60,12 +64,12 @@ fn respawn(i: u32) -> Particle {
 	}
 
 	p.position = spawnPos;   // random position across the full clip space [-1, 1]
-	p.velocity = vec2f((r1 - 0.5) * 0.8, r2 * 0.8 + 0.2); // fan upward
+	p.velocity = vec2f((r1 - 0.5) * 400.0, -(r2 * 300.0 + 100.0));
 	p.color    = vec4f(r3, r4, 1.0 - r3, 1.0);            // random hue
+	p.seed 		 = rand(f32(i) * 3.9 + uniforms.time);
 	p.life     = 1.0;                                     // fully alive
 	p.maxLife  = r7 * 2.0 + 0.5;  												// 0.5–2.5 seconds
 	p.size     = r1 * 8.0 + 4.0;                          // 4–12 px
-	p._pad     = 0.0;
 	return p;
 }
 
@@ -88,7 +92,7 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
 	}
 
 	// Apply gravity
-	p.velocity.y -= 0.4 * uniforms.deltaTime;
+	p.velocity.y += 100 * uniforms.deltaTime;
 
 	// Integrate position
 	p.position += p.velocity * uniforms.deltaTime;
