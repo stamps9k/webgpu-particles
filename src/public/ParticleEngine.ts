@@ -171,7 +171,7 @@ export class ParticleEngine {
 			case "POINT":
 				return { type: 'point', x: canvas.width / 2, y: canvas.height / 2 };
 			case "CIRCLE":
-				return { type: 'circle', x: canvas.width / 2, y: canvas.height / 2, radius: canvas.width / 1.1 };
+				return { type: 'circle', x: canvas.width / 2, y: canvas.height / 2, radius: canvas.width / 2 * 0.6 };
 			case "RECTANGLE":
 				return { type: 'rect',   x:canvas.width / 2 , y: canvas.height / 2, width: canvas.width, height: canvas.height };
 			default:
