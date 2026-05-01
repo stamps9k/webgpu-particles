@@ -120,7 +120,7 @@ export class WebGPUContext {
     });
 
 		// -- Create the shaders
-		var shaders_text: Record<string, string> = await this.loadShaders(shader_set);
+		var shaders_text: Record<string, string> = await this.load_shaders(shader_set);
 		var shaders_compiled: Record<string, GPUShaderModule> = {};
 		shaders_compiled["compute"] = device.createShaderModule({ 
 			code: shaders_text["compute"], 
@@ -158,14 +158,14 @@ export class WebGPUContext {
 		});
 
 		// -- Create the pipelines
-		const compute_pipeline: GPUComputePipeline = this.createComputePipeline(
+		const compute_pipeline: GPUComputePipeline = this.create_compute_pipeline(
 			device, 
 			shaders_compiled, 
 			"main", 
 			"auto", 
 			"compute_pipeline"
 		);
-		const render_pipeline: GPURenderPipeline = this.createRenderPipeline(
+		const render_pipeline: GPURenderPipeline = this.create_render_pipeline(
 			device, 
 			shaders_compiled
 		);
@@ -206,20 +206,30 @@ export class WebGPUContext {
   // Frame helpers
   // -------------------------------------------------------------------------
 
-  /** Return the current swap-chain texture view to use as the render target. */
-  getCurrentColorView(): GPUTextureView {
+  /** 
+	 * 
+	 * Return the current swap-chain texture view to use as the render target. 
+	 * 
+	 * @returns the current swap-chain texture view
+	 * 
+	 */
+  get_current_color_view(): GPUTextureView {
     return this.context.getCurrentTexture().createView();
   }
 
   /**
    * Create a basic render pass descriptor pointed at the current
    * swap-chain texture. Extend or replace as needed.
+	 * 
+	 * @param clearColor - the clear color 
+	 * @returns the GPU Render Pass
+	 * 
    */
-  createRenderPassDescriptor(clearColor: GPUColor = { r: 0, g: 0, b: 0, a: 1 }): GPURenderPassDescriptor {
+  create_render_pass_descriptor(clearColor: GPUColor = { r: 0, g: 0, b: 0, a: 1 }): GPURenderPassDescriptor {
     return {
       colorAttachments: [
         {
-          view: this.getCurrentColorView(),
+          view: this.get_current_color_view(),
           clearValue: clearColor,
           loadOp: "clear",
           storeOp: "store",
@@ -231,18 +241,18 @@ export class WebGPUContext {
 	/**
 	 * Create a command encoder to encode a list of commands to be consumed by the GPU
 	 * 
-	 * @returns 
+	 * @returns a command encoder
 	 */
-  beginFrame(): GPUCommandEncoder {
+  begin_frame(): GPUCommandEncoder {
     return this.device.createCommandEncoder();
   }
 
 	/**
 	 * Finish the encoder and pass to the device for processing
 	 * 
-	 * @param encoder 
+	 * @param encoder - the encoder to close
 	 */
-  endFrame(encoder: GPUCommandEncoder): void {
+  end_frame(encoder: GPUCommandEncoder): void {
     this.device.queue.submit([encoder.finish()]);
   }
 
@@ -299,7 +309,7 @@ export class WebGPUContext {
 	 * @param bufferOffset - How much to offset the write command
 	 * @param data - The data to write to the buffer
 	 */
-  writeBuffer(buffer_name: string, bufferOffset = 0, data: BufferSource): void {
+  write_buffer(buffer_name: string, bufferOffset = 0, data: BufferSource): void {
     this.device.queue.writeBuffer(this.buffers[buffer_name], bufferOffset, data);
   }
 
@@ -325,7 +335,7 @@ export class WebGPUContext {
 	 * @param name - The name for the shader set
 	 * @returns the shaders
 	 */
-	private static async loadShaders(name: string) {
+	private static async load_shaders(name: string) {
 		const s = name.replaceAll("-", "_");
 		const comp = ""
 
@@ -355,7 +365,7 @@ export class WebGPUContext {
 	 * @param label - The name for the pipeline
 	 * @returns the copmute pipeline
 	 */
-	private static createComputePipeline(
+	private static create_compute_pipeline(
 	device: GPUDevice,
 	shaders: Record<string, GPUShaderModule>,
 	entryPoint: string,
@@ -378,9 +388,9 @@ export class WebGPUContext {
 	 * 
 	 * @param device - The device the pipeline will run on
 	 * @param shaders - The shaders the pipeline will use
-	 * @returns 
+	 * @returns the render pipeline
 	 */
-	private static createRenderPipeline(device: GPUDevice, shaders: Record<string, GPUShaderModule>): GPURenderPipeline {
+	private static create_render_pipeline(device: GPUDevice, shaders: Record<string, GPUShaderModule>): GPURenderPipeline {
 		return device.createRenderPipeline({
 			vertex: {
 				module: shaders["vert"],

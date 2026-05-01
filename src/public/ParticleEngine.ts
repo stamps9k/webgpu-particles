@@ -59,7 +59,7 @@ export class ParticleEngine {
     const deltaTime = (now - this.last_time) / 1000;  // seconds
     this.last_time        = now;
 
-		const emitterData = this.generateEmitterData();
+		const emitterData = this.generate_emitter_data();
 		const shader_params = this.generate_shader_params();
 
     // ── update uniforms ───────────────────────────────────────────────────────
@@ -79,14 +79,14 @@ export class ParticleEngine {
 			shader_params[3],
 			shader_params[4],
 		]);
-		this.ctx.writeBuffer("uniform_buffer", 0, uniform_data);
+		this.ctx.write_buffer("uniform_buffer", 0, uniform_data);
 
-		const encoder = this.ctx.beginFrame();
+		const encoder = this.ctx.begin_frame();
     this.ctx.build_compute_pass(encoder, uniform_data, this.MAX_PARTICLES, this.WORKGROUP_SIZE);
 		this.ctx.build_render_pass(encoder, uniform_data, this.MAX_PARTICLES);
 
 		// ── submit ────────────────────────────────────────────────────────────────
-    this.ctx.endFrame(encoder);
+    this.ctx.end_frame(encoder);
     requestAnimationFrame(this.animate_particles);
 	}
 
@@ -97,12 +97,12 @@ export class ParticleEngine {
 	 */
 	context_check() {
 		// ctx is defined here, and this runs whenever ctx updates
-		const encoder = this.ctx.beginFrame();
+		const encoder = this.ctx.begin_frame();
 		const pass = encoder.beginRenderPass(
-				this.ctx.createRenderPassDescriptor({ r: 1, g: 0, b: 0, a: 1 })
+				this.ctx.create_render_pass_descriptor({ r: 1, g: 0, b: 0, a: 1 })
 		);
 		pass.end();
-		this.ctx.endFrame(encoder);
+		this.ctx.end_frame(encoder);
 	}
 
 	public resize(canvas: HTMLCanvasElement) {
@@ -167,10 +167,17 @@ export class ParticleEngine {
 			data[offset + 11] = Math.random() * 8.0 + 4.0;	// size (4–12px)
 		}
 
-		this.ctx.writeBuffer("particle_buffer", 0, data);
+		this.ctx.write_buffer("particle_buffer", 0, data);
 	}
 
-
+	/**
+	 * 
+	 * Creates an emitter of a given shape for a given canvas.
+	 * 
+	 * @param emitter_shape the shape of the emitter
+	 * @param canvas the canvas the emitter will use
+	 * @returns an emitter for particle drawing
+	 */
 	private generate_emitter(emitter_shape: string, canvas: HTMLCanvasElement): Emitter {
  		switch (emitter_shape.toUpperCase()) {
 			case "POINT":
@@ -184,6 +191,12 @@ export class ParticleEngine {
 		}
 	}
 
+	/**
+	 * 
+	 * Generates the custom per shader parameters based on the currently operating shader set.
+	 * 
+	 * @returns an array of Float32 that correspond to shader variables sp0, sp1, sp2, sp3 and sp4.
+	 */
 	private generate_shader_params(): Float32Array {
 		switch (this.ctx.shader_set) {
 			case "scatter_fade":
@@ -218,7 +231,7 @@ export class ParticleEngine {
 	 * @returns the generated Emitter data ready to be passed into the WebGPU buffer
 	 * 
 	 */
-	private generateEmitterData(): Float32Array {
+	private generate_emitter_data(): Float32Array {
 		switch (this.emitter.type) {
     	case 'point':
 				return new Float32Array([
