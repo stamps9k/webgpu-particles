@@ -204,6 +204,7 @@ export class ParticleEngine {
 					0.0,
 					0.0,
 					0.0,
+					0.0,
 					0.0
 				])
 			case "scatter_swirl":
@@ -211,10 +212,20 @@ export class ParticleEngine {
 					150.0,
 					30.0,
 					8.0,
+					0.0,
+					0.0
+				])
+			case "fireworks":
+				return new Float32Array([
+					400,	// sp0 - Launch speed
+					300,	// sp1 - Spark speed
+					200,		// sp2 - gravity
+					2.0,			// sp3 - rocket count
 					0.0
 				])
 			default:
 				return new Float32Array([
+					0.0,
 					0.0,
 					0.0,
 					0.0,

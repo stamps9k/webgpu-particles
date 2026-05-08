@@ -1,4 +1,5 @@
 //import { scatter_fade_comp, scatter_fade_vert, scatter_fade_frag } from './shaders';
+import { resourceLimits } from "node:worker_threads";
 import { shader_registry } from "./shaders";
 
 /** Custom options that the I may want to use */
@@ -15,8 +16,8 @@ export class WebGPUContext {
   readonly format: GPUTextureFormat;
 	readonly shader_set: string;
 	readonly shaders: Record<string, GPUShaderModule>;
-	readonly compute_pipeline: GPUComputePipeline;
-	readonly render_pipeline: GPURenderPipeline;
+	readonly compute_pipelines: Record<string, GPUComputePipeline>;
+	readonly render_pipelines: Record<string, GPURenderPipeline>;
 	readonly bind_groups: Record<string, GPUBindGroup>;
 
 	// -- The buffers used in simulation
@@ -46,8 +47,8 @@ export class WebGPUContext {
 		shader_set: string,
 		shaders: Record<string, GPUShaderModule>,
 		buffers: Record<string, GPUBuffer>,
-		compute_pipeline: GPUComputePipeline,
-		render_pipeline: GPURenderPipeline,
+		compute_pipelines: Record<string, GPUComputePipeline>,
+		render_pipelines: Record<string, GPURenderPipeline>,
 		bind_groups: Record<string, GPUBindGroup>,
   ) {
     this.adapter = adapter;
@@ -58,8 +59,8 @@ export class WebGPUContext {
 		this.shaders = shaders;
 		this.bind_groups = bind_groups;
 		this.buffers = buffers;
-		this.compute_pipeline = compute_pipeline;
-		this.render_pipeline = render_pipeline;
+		this.compute_pipelines = compute_pipelines;
+		this.render_pipelines = render_pipelines;
   }
 
   // -------------------------------------------------------------------------
@@ -126,17 +127,17 @@ export class WebGPUContext {
 			code: shaders_text["compute"], 
 			label: "particle_compute_shader" 
 		});
-		this.log_shader_errors(shaders_compiled["compute"]);
+		await this.log_shader_errors(shaders_compiled["compute"]);
 		shaders_compiled["vert"] = device.createShaderModule({ 
 			code: shaders_text["vert"], 
 			label: "particle_vert_shader"
 		});
-		this.log_shader_errors(shaders_compiled["vert"]);
+		await this.log_shader_errors(shaders_compiled["vert"]);
 		shaders_compiled["frag"]	=	device.createShaderModule({ 
 			code: shaders_text["frag"], 
 			label: "particle_frag_shader"
 		});
-		this.log_shader_errors(shaders_compiled["frag"]);
+		await this.log_shader_errors(shaders_compiled["frag"]);
 
 		// -- Create the buffers
 		var buffers: Record<string, GPUBuffer> = {};
@@ -158,34 +159,17 @@ export class WebGPUContext {
 		});
 
 		// -- Create the pipelines
-		const compute_pipeline: GPUComputePipeline = this.create_compute_pipeline(
-			device, 
-			shaders_compiled, 
-			"main", 
-			"auto", 
-			"compute_pipeline"
+		var compute_pipelines: Record<string, GPUComputePipeline> = this.create_compute_pipelines(
+			device, shader_set, shaders_compiled
 		);
-		const render_pipeline: GPURenderPipeline = this.create_render_pipeline(
-			device, 
-			shaders_compiled
+		var render_pipelines: Record<string, GPURenderPipeline> = this.create_render_pipelines(
+			device, shader_set, shaders_compiled
 		);
 
 		// -- Create the bind groups
-		var bind_groups: Record<string, GPUBindGroup> = {};
-		bind_groups["compute_bind_group"] = device.createBindGroup({
-			layout: compute_pipeline.getBindGroupLayout(0),
-    	entries: [
-        { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-        { binding: 1, resource: { buffer: buffers["particle_buffer"] } },
-    	],	
-		});
-		bind_groups["render_bind_group"] = device.createBindGroup({
-			layout: render_pipeline.getBindGroupLayout(0),
-			entries: [
-					{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-					{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
-			],
-		});
+		var bind_groups: Record<string, GPUBindGroup> = this.create_bind_groups(
+			device, shader_set, compute_pipelines, render_pipelines, buffers
+		);
 
 		// -- Create an object to hold all variables
     return new WebGPUContext(
@@ -196,8 +180,8 @@ export class WebGPUContext {
 			shader_set.replaceAll("-", "_"),
 			shaders_compiled,
 			buffers,
-			compute_pipeline,
-			render_pipeline,
+			compute_pipelines,
+			render_pipelines,
 			bind_groups,
     );
   }
@@ -271,9 +255,23 @@ export class WebGPUContext {
 	build_compute_pass(encoder: GPUCommandEncoder, uniform_data: Float32Array, max_particles: number, workgroup_size: number) {
 		// compute pass — simulate
     var compute = encoder.beginComputePass();
-    compute.setPipeline(this.compute_pipeline);
-    compute.setBindGroup(0, this.bind_groups["compute_bind_group"]);
-    compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+
+		switch (this.shader_set) {
+			case "fireworks":
+				compute.setPipeline(this.compute_pipelines["rocket_pipeline"]);
+				compute.setBindGroup(0, this.bind_groups["rocket_bind_group"]);
+				compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+
+				compute.setPipeline(this.compute_pipelines["spark_pipeline"]);
+				compute.setBindGroup(0, this.bind_groups["spark_bind_group"]);
+				compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+				break;
+			default:
+				compute.setPipeline(this.compute_pipelines["compute_pipeline"]);
+    		compute.setBindGroup(0, this.bind_groups["compute_bind_group"]);
+    		compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+				break;
+		}
     compute.end();
 	}
 
@@ -295,7 +293,7 @@ export class WebGPUContext {
 					storeOp: 'store',
 			}],
     });
-		render.setPipeline(this.render_pipeline);
+		render.setPipeline(this.render_pipelines["render_pipeline"]);
     render.setBindGroup(0, this.bind_groups["render_bind_group"]);
     render.draw(6, max_particles);  // 6 vertices × N instances
     render.end();
@@ -352,8 +350,119 @@ export class WebGPUContext {
 		}
 
 		return { compute, vert, frag };
-}
+	}
 
+	/**
+	 * 
+	 * Create all needed compute pipelines. Different number of pipelines are made
+	 * depending on the particle affect required.
+	 * 
+	 * @param device - The device that the piepline
+	 * @param shader_set - The effect that is being created
+	 * @param shaders_compiled - The shaders associated with the affect
+	 * @returns - a set of pipelines for the effect
+	 */
+	private static create_compute_pipelines(device: GPUDevice, shader_set: string, shaders_compiled: Record<string, GPUShaderModule>): Record<string, GPUComputePipeline> {
+		var result: Record<string, GPUComputePipeline> = {};
+		
+		switch (shader_set) {
+			case "fireworks": 
+				result["rocket_pipeline"] = this.create_compute_pipeline(
+					device, 
+					shaders_compiled, 
+					"main_rockets", 
+					"auto", 
+					"rocket_pipeline"
+				);
+				result["spark_pipeline"] = this.create_compute_pipeline(
+					device, 
+					shaders_compiled, 
+					"main_sparks", 
+					"auto", 
+					"spark_pipeline"
+				);
+				break;
+			default:
+				result["compute_pipeline"] = this.create_compute_pipeline(
+					device, 
+					shaders_compiled, 
+					"main", 
+					"auto", 
+					"compute_pipeline"
+				);
+				break;
+		}
+		
+		return result;
+	}
+
+	private static create_render_pipelines(device: GPUDevice, shader_set: string, shaders_compiled: Record<string, GPUShaderModule>): Record<string, GPURenderPipeline> {
+		var result: Record<string, GPURenderPipeline> = {};
+		
+		switch (shader_set) {
+			default:
+				result["render_pipeline"] = this.create_render_pipeline(
+					device, 
+					shaders_compiled
+				);
+				break;
+		}
+
+		return result;
+	}
+
+	private static create_bind_groups(
+		device: GPUDevice, 
+		shader_set: string, 
+		compute_pipelines: Record<string, GPUComputePipeline>, 
+		render_pipelines: Record<string, GPURenderPipeline>,
+		buffers: Record<string, GPUBuffer>
+	): Record<string, GPUBindGroup> {
+		var result: Record<string, GPUBindGroup> = {}
+
+		switch (shader_set) {
+			case "fireworks":
+				result["rocket_bind_group"] = device.createBindGroup({
+					layout: compute_pipelines["rocket_pipeline"].getBindGroupLayout(0),
+					entries: [
+						{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+						{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+					]
+				});
+				result["spark_bind_group"] = device.createBindGroup({
+					layout: compute_pipelines["spark_pipeline"].getBindGroupLayout(0),
+					entries: [
+						{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+						{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+					]
+				});
+				result["render_bind_group"] = device.createBindGroup({
+					layout: render_pipelines["render_pipeline"].getBindGroupLayout(0),
+					entries: [
+							{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+							{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+					]
+				});	
+				break;
+			default:
+				result["compute_bind_group"] = device.createBindGroup({
+					layout: compute_pipelines["compute_pipeline"].getBindGroupLayout(0),
+					entries: [
+						{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+						{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+					]
+				});
+				result["render_bind_group"] = device.createBindGroup({
+					layout: render_pipelines["render_pipeline"].getBindGroupLayout(0),
+					entries: [
+							{ binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+							{ binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+					]
+				});		
+		}
+
+		return result;
+	}
 
 	/**
 	 * Create the compute pipeline
@@ -371,15 +480,15 @@ export class WebGPUContext {
 	entryPoint: string,
 	layout: GPUPipelineLayout | "auto" = "auto",
 	label?: string): GPUComputePipeline {
-	if (shaders["compute"] === null) { 
-		throw new Error("No compute shader defined.");
-	}
+		if (!shaders["compute"]) {
+			throw new Error("No compute shader defined.");
+		}
 
-	return device.createComputePipeline({
-		label,
-		layout,
-		compute: { module: shaders["compute"], entryPoint },
-	});
+		return device.createComputePipeline({
+			label,
+			layout,
+			compute: { module: shaders["compute"], entryPoint },
+		});
 	}
 
 	/**
