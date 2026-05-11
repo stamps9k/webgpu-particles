@@ -6,14 +6,11 @@ import { Emitter } from "./types/Emitters";
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
 	private MAX_PARTICLES = 10000;
-	private PARTICLE_STRIDE = 48
 	private WORKGROUP_SIZE = 10;
 	private emitter: Emitter;
 	private canvas: HTMLCanvasElement;
 	private ctx: WebGPUContext;
-	private particle_count: number;
 	private particle_type: ParticleType;
-	private particle_size: number;
 	private last_time: number = performance.now();
 
 	/**
@@ -26,15 +23,12 @@ export class ParticleEngine {
 	 * @param max_particles - the max number of particles requested by the user
 	 * @param particle_stride - The size of each particle in GPU memory
 	 */
-	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext, emitter_shape: string, max_particles: number, particle_stride: number) {
+	private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext) {
 		this.canvas = canvas;
 		this.ctx = ctx;
-		this.emitter = this.generate_emitter(emitter_shape, canvas);
-		this.MAX_PARTICLES = max_particles;
-		this.PARTICLE_STRIDE = particle_stride;
-		this.particle_count = 0;
+		this.emitter = this.generate_emitter(ctx.shader_config["emitter-shape"], canvas);
+		this.MAX_PARTICLES = Number.parseInt(ctx.shader_config["max-particles"]);
 		this.particle_type = ParticleType.Square;
-		this.particle_size = 1;
 		this.last_time = performance.now();
 	}
 
@@ -220,7 +214,7 @@ export class ParticleEngine {
 					400,	// sp0 - Launch speed
 					300,	// sp1 - Spark speed
 					200,		// sp2 - gravity
-					2.0,			// sp3 - rocket count
+					Number.parseFloat(this.ctx.shader_config["rocket-count"]),			// sp3 - rocket count
 					0.0
 				])
 			default:
@@ -284,24 +278,50 @@ export class ParticleEngine {
 	 */
 	static async init(
     canvas: HTMLCanvasElement,
-		max_particles: number = 10000,
-		emitter_shape: string,
 		shader_set: string,
+		shader_config: Record<string, string>,
 		options: WebGPUContextOptions = {},
   ): Promise<ParticleEngine> {
-		const PARTICLE_STRIDE = 48
+		shader_config = ParticleEngine.normalize_shader_config(shader_set, shader_config);
 
 		const tmp_ctx = await WebGPUContext.init(
 			canvas, 
 			options,
-			max_particles,
 			shader_set,
-			PARTICLE_STRIDE,
+			shader_config
 		);
 
-		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx, emitter_shape, max_particles, PARTICLE_STRIDE);
+		const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx);
 		result.seedParticleBuffer();
 
 		return result;
+	}
+
+	static normalize_shader_config(shader_set: string, shader_config: Record<string, string>): Record<string, string> {
+		switch (shader_set) {
+			case "scatter-fade":
+				if (shader_config["max-particles"] === undefined)
+					shader_config["max-particles"] = "500";
+				if (shader_config["emitter-shape"] === undefined)
+					shader_config["emitter-shape"] = "Rectangle";
+				break;
+			case "scatter-swirl":
+				if (shader_config["max-particles"] === undefined)
+					shader_config["max-particles"] = "500";
+				if (shader_config["emitter-shape"] === undefined)
+					shader_config["emitter-shape"] = "Rectangle";
+				break;	
+			case "fireworks":
+				if (shader_config["max-particles"] === undefined)
+					shader_config["max-particles"] = "500";
+				if (shader_config["rocket-count"] === undefined)
+					shader_config["rocket-count"] = "5";
+				shader_config["emitter-shape"] = "Rectangle";
+				break;
+			default:
+				throw new Error("Unknown shader-set type");
+				break;
+		}
+		return shader_config;
 	}
 }

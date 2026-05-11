@@ -15,6 +15,7 @@ export class WebGPUContext {
   readonly context: GPUCanvasContext;
   readonly format: GPUTextureFormat;
 	readonly shader_set: string;
+	readonly shader_config: Record<string, string>;
 	readonly shaders: Record<string, GPUShaderModule>;
 	readonly compute_pipelines: Record<string, GPUComputePipeline>;
 	readonly render_pipelines: Record<string, GPURenderPipeline>;
@@ -45,6 +46,7 @@ export class WebGPUContext {
     context: GPUCanvasContext,
     format: GPUTextureFormat,
 		shader_set: string,
+		shader_config: Record<string, string>,
 		shaders: Record<string, GPUShaderModule>,
 		buffers: Record<string, GPUBuffer>,
 		compute_pipelines: Record<string, GPUComputePipeline>,
@@ -56,6 +58,7 @@ export class WebGPUContext {
     this.context = context;
     this.format = format;
 		this.shader_set = shader_set;
+		this.shader_config = shader_config;
 		this.shaders = shaders;
 		this.bind_groups = bind_groups;
 		this.buffers = buffers;
@@ -81,10 +84,11 @@ export class WebGPUContext {
   static async init(
     canvas: HTMLCanvasElement,
     options: WebGPUContextOptions = {},
-		max_particles: number,
 		shader_set: string,
-		particle_stride: number
+		shader_config: Record<string, string>
   ): Promise<WebGPUContext> {
+		const particle_stride = 48;
+
 		// -- Create and configure the context
     if (!navigator.gpu) {
       throw new Error("WebGPU is not supported in this environment.");
@@ -154,7 +158,7 @@ export class WebGPUContext {
 		});
 		buffers["particle_buffer"] = device.createBuffer({
 			label: 'particles',
-			size: max_particles * particle_stride,
+			size: Number.parseInt(shader_config["max-particles"]) * particle_stride,
 			usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
 		});
 
@@ -178,6 +182,7 @@ export class WebGPUContext {
       context,
       format,
 			shader_set.replaceAll("-", "_"),
+			shader_config,
 			shaders_compiled,
 			buffers,
 			compute_pipelines,

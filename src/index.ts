@@ -19,8 +19,8 @@ export function hello_particles(): string {
  *  
  * @returns A Promise to give a particles context for use by the website  
  */
-export function init(canvas: HTMLCanvasElement, max_particles: number = 10000, emitter_shape: string = "POINT", shader_set: string = "scatter_fade"): Promise<ParticleEngine> {
-  return ParticleEngine.init(canvas, max_particles, emitter_shape, shader_set);
+export function init(canvas: HTMLCanvasElement, shader_set: string = "scatter_fade", shader_config: Record<string, string>): Promise<ParticleEngine> {
+  return ParticleEngine.init(canvas, shader_set, shader_config);
 } 
 
 export { ParticleEngine } from './public/ParticleEngine';
