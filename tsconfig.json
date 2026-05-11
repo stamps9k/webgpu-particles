@@ -9,5 +9,9 @@
     "skipLibCheck": true,
     "rootDir": "src"
   },
-  "include": ["src", "tsup.config.ts"]
+  "include": ["src"],
+	"exclude": ["node_modules", "dist", "tsup.config.ts", "scripts"],
+	"references": [
+    { "path": "./tsconfig.node.json" }
+  ]
 }
