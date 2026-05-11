@@ -54,8 +54,9 @@ fn respawnRocket(i: u32) -> Particle {
     let r5 = rand(f32(i) * 5.3 + uniforms.time);
 
     let angle  = (r2 - 0.5) * 0.4;
+		let mod_speed = (0.8 + (r2 * 0.2)) * -uniforms.sp0;
     p.position = uniforms.emitterPos + vec2f((r1 - 0.5) * uniforms.emitterP1, uniforms.emitterP2 / 2);
-    p.velocity = vec2f(sin(angle) * uniforms.sp0 * 0.3, -uniforms.sp0);
+    p.velocity = vec2f(sin(angle) * uniforms.sp0 * 0.3, mod_speed);
     p.color    = vec4f(r3, r4, r5, 1.0);
     p.seed     = 0.0;   // rocket in flight
     p.life     = 1.0;
