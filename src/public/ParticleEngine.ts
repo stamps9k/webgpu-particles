@@ -298,7 +298,7 @@ export class ParticleEngine {
     );
 
     const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx);
-    result.seedParticleBuffer();
+    result.seed_particle_buffer();
 
     return result;
   }
