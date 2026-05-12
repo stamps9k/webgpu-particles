@@ -1,4 +1,4 @@
-declare module '*.wgsl' {
+declare module "*.wgsl" {
   const source: string;
   export default source;
 }

@@ -11,17 +11,21 @@ export function hello_particles(): string {
 
 /**
  * Initiliasize the system in preparation of use
- * 
+ *
  * @param canvas - the canvas element to tie the particles to.
  * @param max_particles - the maximum number of particles to render.
  * @param emitter_shape - the shape that particles are emitted in.
  * @param shader_set - the shader_set to use to render the particles.
- *  
- * @returns A Promise to give a particles context for use by the website  
+ *
+ * @returns A Promise to give a particles context for use by the website
  */
-export function init(canvas: HTMLCanvasElement, shader_set: string = "scatter_fade", shader_config: Record<string, string>): Promise<ParticleEngine> {
+export function init(
+  canvas: HTMLCanvasElement,
+  shader_set: string = "scatter_fade",
+  shader_config: Record<string, string>,
+): Promise<ParticleEngine> {
   return ParticleEngine.init(canvas, shader_set, shader_config);
-} 
+}
 
-export { ParticleEngine } from './public/ParticleEngine';
-export { ParticleType } from './public/enums/ParticleTypes';
+export { ParticleEngine } from "./public/ParticleEngine";
+export { ParticleType } from "./public/enums/ParticleTypes";

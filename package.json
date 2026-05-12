@@ -30,18 +30,31 @@
   "scripts": {
     "test": "vitest",
     "build": "tsup && tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist && cp package.json ./dist/package.json",
-    "dev": "concurrently \"tsup --watch\" \"tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist --watch\""
+    "dev": "concurrently \"tsup --watch\" \"tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist --watch\"",
+    "prepare": "husky",
+    "lint": "eslint .",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write ."
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
-    "@typescript-eslint/eslint-plugin": "^8.58.2",
-    "@typescript-eslint/parser": "^8.58.2",
+    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/parser": "^8.59.3",
     "@webgpu/types": "^0.1.69",
     "concurrently": "^9.2.1",
-    "eslint": "^10.2.0",
-    "prettier": "^3.8.2",
+    "eslint": "^10.3.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.4",
+    "prettier": "^3.8.3",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ]
   }
 }

@@ -1,23 +1,23 @@
 import { defineConfig } from "tsup";
-import { Plugin } from 'esbuild';
-import fs from 'fs';
+import { Plugin } from "esbuild";
+import fs from "fs";
 
-const wgslPlugin: Plugin = {
-  name: 'wgsl',
+const wgsl_plugin: Plugin = {
+  name: "wgsl",
   setup(build) {
     build.onLoad({ filter: /\.wgsl$/ }, (args) => {
-      let source = fs.readFileSync(args.path, 'utf8');
+      let source = fs.readFileSync(args.path, "utf8");
 
       source = source
-        .replace(/\/\/[^\n]*/g, '')       // strip // comments
-        .replace(/\/\*[\s\S]*?\*\//g, '') // strip /* */ comments
-				.replace(/[^\x00-\x7F]/g, '')  		// strip non-ASCII
-        .replace(/\s+/g, ' ')             // collapse whitespace
+        .replace(/\/\/[^\n]*/g, "") // strip // comments
+        .replace(/\/\*[\s\S]*?\*\//g, "") // strip /* */ comments
+        .replace(/[^\x00-\x7F]/g, "") // strip non-ASCII
+        .replace(/\s+/g, " ") // collapse whitespace
         .trim();
 
       return {
         contents: `export default ${JSON.stringify(source)}`,
-        loader: 'js',
+        loader: "js",
       };
     });
   },
@@ -26,10 +26,10 @@ const wgslPlugin: Plugin = {
 export default defineConfig({
   entry: ["src/index.ts"],
   format: ["esm"],
-	esbuildPlugins: [wgslPlugin],
-	loader: {
-    '.wgsl': 'text',
-    '.glsl': 'text',
+  esbuildPlugins: [wgsl_plugin],
+  loader: {
+    ".wgsl": "text",
+    ".glsl": "text",
   },
   outExtension() {
     return { js: ".mjs" };

@@ -10,8 +10,6 @@
     "rootDir": "src"
   },
   "include": ["src"],
-	"exclude": ["node_modules", "dist", "tsup.config.ts", "scripts"],
-	"references": [
-    { "path": "./tsconfig.node.json" }
-  ]
+  "exclude": ["node_modules", "dist", "tsup.config.ts", "scripts"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }
