@@ -1,13 +1,17 @@
-import { FlagAndOpenMode } from "fs/promises";
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
 import { ParticleType } from "./enums/ParticleTypes";
 import { Emitter } from "./types/Emitters";
+import { ParticleEffect } from "./effects/ParticleEffect";
+import { Particle } from "./Particle";
+import { EmitterConfig } from "./EmitterConfig";
+import { emit } from "node:cluster";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
   private MAX_PARTICLES = 10000;
   private WORKGROUP_SIZE = 10;
   private emitter: Emitter;
+  private effect: ParticleEffect;
   private canvas: HTMLCanvasElement;
   private ctx: WebGPUContext;
   private particle_type: ParticleType;
@@ -23,14 +27,16 @@ export class ParticleEngine {
    * @param max_particles - the max number of particles requested by the user
    * @param particle_stride - The size of each particle in GPU memory
    */
-  private constructor(canvas: HTMLCanvasElement, ctx: WebGPUContext) {
+  private constructor(
+    canvas: HTMLCanvasElement,
+    ctx: WebGPUContext,
+    effect: ParticleEffect,
+    emitter_config: EmitterConfig,
+  ) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.emitter = this.generate_emitter(
-      ctx.shader_config["emitter-shape"],
-      canvas,
-    );
-    this.MAX_PARTICLES = Number.parseInt(ctx.shader_config["max-particles"]);
+    this.emitter = this.generate_emitter(emitter_config);
+    this.effect = effect;
     this.particle_type = ParticleType.Square;
     this.last_time = performance.now();
   }
@@ -57,7 +63,7 @@ export class ParticleEngine {
     this.last_time = now;
 
     const emitter_data = this.generate_emitter_data();
-    const shader_params = this.generate_shader_params();
+    const shader_params = this.effect.get_shader_params();
 
     // ── update uniforms ───────────────────────────────────────────────────────
     const uniform_data = new Float32Array([
@@ -70,11 +76,11 @@ export class ParticleEngine {
       emitter_data[2],
       emitter_data[3],
       emitter_data[4],
-      shader_params[0],
-      shader_params[1],
-      shader_params[2],
-      shader_params[3],
-      shader_params[4],
+      shader_params.sp0,
+      shader_params.sp1,
+      shader_params.sp2,
+      shader_params.sp3,
+      shader_params.sp4,
     ]);
     this.ctx.write_buffer("uniform_buffer", 0, uniform_data);
 
@@ -109,7 +115,7 @@ export class ParticleEngine {
 
   public resize(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    this.emitter = this.generate_emitter(this.emitter.type, canvas);
+    //this.emitter = this.generate_emitter(this, canvas);
   }
 
   /**
@@ -117,7 +123,7 @@ export class ParticleEngine {
    * Generate all the raw particle data for the initial set of particles
    *
    */
-  private seed_particle_buffer() {
+  private buffer_particles(particles: Particle[]) {
     const data = new Float32Array(this.MAX_PARTICLES * 12);
 
     for (let i = 0; i < this.MAX_PARTICLES; i++) {
@@ -127,20 +133,24 @@ export class ParticleEngine {
       let x, y;
       switch (this.emitter.type) {
         case "point":
-          x = this.emitter.x;
-          y = this.emitter.y;
+          x = this.emitter.pos[0];
+          y = this.emitter.pos[1];
           break;
 
         case "circle":
           const angle = Math.random() * Math.PI * 2;
-          const radius = Math.sqrt(Math.random()) * this.emitter.radius;
-          x = this.emitter.x + Math.cos(angle) * radius;
-          y = this.emitter.y + Math.sin(angle) * radius;
+          const radius = Math.sqrt(Math.random()) * (this.emitter.p1 ?? 0);
+          x = this.emitter.pos[0] + Math.cos(angle) * radius;
+          y = this.emitter.pos[1] + Math.sin(angle) * radius;
           break;
 
         case "rect":
-          x = this.emitter.x + (Math.random() - 0.5) * this.emitter.width;
-          y = this.emitter.y + (Math.random() - 0.5) * this.emitter.height;
+          x =
+            this.emitter.pos[0] +
+            (Math.random() - 0.5) * (this.emitter.p1 ?? 1);
+          y =
+            this.emitter.pos[1] +
+            (Math.random() - 0.5) * (this.emitter.p2 ?? 0);
           break;
 
         default:
@@ -180,56 +190,13 @@ export class ParticleEngine {
    * @param canvas the canvas the emitter will use
    * @returns an emitter for particle drawing
    */
-  private generate_emitter(
-    emitter_shape: string,
-    canvas: HTMLCanvasElement,
-  ): Emitter {
-    switch (emitter_shape.toUpperCase()) {
-      case "POINT":
-        return { type: "point", x: canvas.width / 2, y: canvas.height / 2 };
-      case "CIRCLE":
-        return {
-          type: "circle",
-          x: canvas.width / 2,
-          y: canvas.height / 2,
-          radius: (canvas.width / 2) * 0.6,
-        };
-      case "RECTANGLE":
-        return {
-          type: "rect",
-          x: canvas.width / 2,
-          y: canvas.height / 2,
-          width: canvas.width,
-          height: canvas.height,
-        };
-      default:
-        return { type: "point", x: 0, y: 0 };
-    }
-  }
-
-  /**
-   *
-   * Generates the custom per shader parameters based on the currently operating shader set.
-   *
-   * @returns an array of Float32 that correspond to shader variables sp0, sp1, sp2, sp3 and sp4.
-   */
-  private generate_shader_params(): Float32Array {
-    switch (this.ctx.shader_set) {
-      case "scatter_fade":
-        return new Float32Array([0.0, 0.0, 0.0, 0.0, 0.0]);
-      case "scatter_swirl":
-        return new Float32Array([150.0, 30.0, 8.0, 0.0, 0.0]);
-      case "fireworks":
-        return new Float32Array([
-          400, // sp0 - Launch speed
-          300, // sp1 - Spark speed
-          200, // sp2 - gravity
-          Number.parseFloat(this.ctx.shader_config["rocket-count"]), // sp3 - rocket count
-          0.0,
-        ]);
-      default:
-        return new Float32Array([0.0, 0.0, 0.0, 0.0, 0.0]);
-    }
+  private generate_emitter(emitter_config: EmitterConfig): Emitter {
+    return {
+      type: emitter_config.emitterType,
+      pos: emitter_config.emitterPos,
+      p1: emitter_config.emitterP1 ?? 50,
+      p2: emitter_config.emitterP2 ?? 50,
+    };
   }
 
   /**
@@ -243,27 +210,35 @@ export class ParticleEngine {
     switch (this.emitter.type) {
       case "point":
         return new Float32Array([
-          this.emitter.x, // x
-          this.emitter.y, // y
+          this.emitter.pos[0], // x
+          this.emitter.pos[1], // y
           0.0, // Emitter type
           0.0, // Not used by a point emitter
           0.0, // Not used by a point emitter
         ]);
       case "circle":
         return new Float32Array([
-          this.emitter.x, // x position
-          this.emitter.y, // y position
+          this.emitter.pos[0], // x position
+          this.emitter.pos[1], // y position
           1.0, // Emitter type
-          this.emitter.radius, // Circle emitter radius
+          this.emitter.p1, // Circle emitter radius
           0.0, // Not used by a circle emitter
         ]);
       case "rect":
         return new Float32Array([
-          this.emitter.x, // x
-          this.emitter.y, // y
+          this.emitter.pos[0], // x
+          this.emitter.pos[1], // y
           2.0, // Emitter type
-          this.emitter.width, // Emitter width
-          this.emitter.height, // Emitter height
+          this.emitter.p1, // Emitter width
+          this.emitter.p2, // Emitter height
+        ]);
+      default:
+        return new Float32Array([
+          this.emitter.pos[0], // x
+          this.emitter.pos[1], // y
+          0.0, // Emitter type
+          this.emitter.p1, // Emitter width
+          this.emitter.p2, // Emitter height
         ]);
     }
   }
@@ -281,24 +256,21 @@ export class ParticleEngine {
    */
   static async init(
     canvas: HTMLCanvasElement,
-    shader_set: string,
-    shader_config: Record<string, string>,
+    effect: ParticleEffect,
+    emitter_config: EmitterConfig,
     options: WebGPUContextOptions = {},
   ): Promise<ParticleEngine> {
-    shader_config = ParticleEngine.normalize_shader_config(
-      shader_set,
-      shader_config,
-    );
+    const tmp_ctx = await WebGPUContext.init(canvas, options, effect);
 
-    const tmp_ctx = await WebGPUContext.init(
+    const result: ParticleEngine = new ParticleEngine(
       canvas,
-      options,
-      shader_set,
-      shader_config,
+      tmp_ctx,
+      effect,
+      emitter_config,
     );
 
-    const result: ParticleEngine = new ParticleEngine(canvas, tmp_ctx);
-    result.seed_particle_buffer();
+    var particles: Particle[] = effect.seed_particles();
+    result.buffer_particles(particles);
 
     return result;
   }

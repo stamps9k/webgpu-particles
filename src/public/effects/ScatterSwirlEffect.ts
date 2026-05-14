@@ -1,0 +1,52 @@
+import { ParticleEffect } from "./ParticleEffect";
+import { Particle } from "../Particle";
+import { ShaderParams } from "../ShaderParams";
+
+export class ScatterSwirlEffect implements ParticleEffect {
+  private MAX_PARTICLES;
+  private SPIN_STRENGTH;
+  private PULL_STRENGTH;
+
+  public constructor(max_particles: number) {
+    this.MAX_PARTICLES = max_particles;
+    this.SPIN_STRENGTH = 150;
+    this.PULL_STRENGTH = 30;
+  }
+
+  seed_particles(): Particle[] {
+    var particles: Particle[] = [];
+
+    for (const particle of particles) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 100 + Math.random() * 300;
+
+      particle.position = [0, 0]; // engine overwrites from emitter pos
+      particle.velocity = [Math.cos(angle) * speed, Math.sin(angle) * speed];
+      particle.color = [Math.random(), Math.random(), Math.random(), 1.0];
+      particle.seed = Math.random();
+      particle.maxLife = 1.0 + Math.random() * 2.0;
+      particle.life = particle.maxLife;
+      particle.size = 2 + Math.random() * 6;
+    }
+
+    return particles;
+  }
+
+  get_shader_params(): ShaderParams {
+    return {
+      sp0: this.SPIN_STRENGTH, // - spin strength
+      sp1: this.PULL_STRENGTH, // - pull strength
+      sp2: 0,
+      sp3: 0,
+      sp4: 0,
+    };
+  }
+
+  get_max_particles(): number {
+    return this.MAX_PARTICLES;
+  }
+
+  get_effect_name(): string {
+    return "scatter-swirl";
+  }
+}

@@ -1,3 +1,5 @@
+import { ParticleEffect } from "./public/effects/ParticleEffect";
+import { EmitterConfig } from "./public/EmitterConfig";
 import { ParticleEngine } from "./public/ParticleEngine";
 
 /**
@@ -21,11 +23,16 @@ export function hello_particles(): string {
  */
 export function init(
   canvas: HTMLCanvasElement,
-  shader_set: string = "scatter_fade",
-  shader_config: Record<string, string>,
+  particle_effect: ParticleEffect,
+  emitter_config: EmitterConfig,
 ): Promise<ParticleEngine> {
-  return ParticleEngine.init(canvas, shader_set, shader_config);
+  return ParticleEngine.init(canvas, particle_effect, emitter_config);
 }
 
 export { ParticleEngine } from "./public/ParticleEngine";
 export { ParticleType } from "./public/enums/ParticleTypes";
+export { ParticleEffect } from "./public/effects/ParticleEffect";
+export { ScatterFadeEffect } from "./public/effects/ScatterFadeEffect";
+export { ScatterSwirlEffect } from "./public/effects/ScatterSwirlEffect";
+export { FireworksEffect } from "./public/effects/FireworksEffect";
+export { EmitterConfig } from "./public/EmitterConfig";

@@ -1,6 +1,11 @@
 //import { scatter_fade_comp, scatter_fade_vert, scatter_fade_frag } from './shaders';
 import { resourceLimits } from "node:worker_threads";
 import { shader_registry } from "./shaders";
+import { ParticleEffect } from "../public/effects/ParticleEffect";
+import { ScatterFadeEffect } from "../public/effects/ScatterFadeEffect";
+import { ShaderParams } from "../public/ShaderParams";
+import { FireworksEffect } from "../public/effects/FireworksEffect";
+import { ScatterSwirlEffect } from "../public/effects/ScatterSwirlEffect";
 
 /** Custom options that the I may want to use */
 export interface WebGPUContextOptions {
@@ -15,7 +20,7 @@ export class WebGPUContext {
   readonly context: GPUCanvasContext;
   readonly format: GPUTextureFormat;
   readonly shader_set: string;
-  readonly shader_config: Record<string, string>;
+  readonly shader_config: ShaderParams;
   readonly shaders: Record<string, GPUShaderModule>;
   readonly compute_pipelines: Record<string, GPUComputePipeline>;
   readonly render_pipelines: Record<string, GPURenderPipeline>;
@@ -46,7 +51,7 @@ export class WebGPUContext {
     context: GPUCanvasContext,
     format: GPUTextureFormat,
     shader_set: string,
-    shader_config: Record<string, string>,
+    shader_config: ShaderParams,
     shaders: Record<string, GPUShaderModule>,
     buffers: Record<string, GPUBuffer>,
     compute_pipelines: Record<string, GPUComputePipeline>,
@@ -84,8 +89,7 @@ export class WebGPUContext {
   static async init(
     canvas: HTMLCanvasElement,
     options: WebGPUContextOptions = {},
-    shader_set: string,
-    shader_config: Record<string, string>,
+    effect: ParticleEffect,
   ): Promise<WebGPUContext> {
     const particle_stride = 48;
 
@@ -127,8 +131,7 @@ export class WebGPUContext {
     });
 
     // -- Create the shaders
-    var shaders_text: Record<string, string> =
-      await this.load_shaders(shader_set);
+    var shaders_text: Record<string, string> = await this.load_shaders(effect);
     var shaders_compiled: Record<string, GPUShaderModule> = {};
     shaders_compiled["compute"] = device.createShaderModule({
       code: shaders_text["compute"],
@@ -161,20 +164,28 @@ export class WebGPUContext {
     });
     buffers["particle_buffer"] = device.createBuffer({
       label: "particles",
-      size: Number.parseInt(shader_config["max-particles"]) * particle_stride,
+      size: effect.get_max_particles() * particle_stride,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
 
     // -- Create the pipelines
     var compute_pipelines: Record<string, GPUComputePipeline> =
-      this.create_compute_pipelines(device, shader_set, shaders_compiled);
+      this.create_compute_pipelines(
+        device,
+        effect.get_effect_name(),
+        shaders_compiled,
+      );
     var render_pipelines: Record<string, GPURenderPipeline> =
-      this.create_render_pipelines(device, shader_set, shaders_compiled);
+      this.create_render_pipelines(
+        device,
+        effect.get_effect_name(),
+        shaders_compiled,
+      );
 
     // -- Create the bind groups
     var bind_groups: Record<string, GPUBindGroup> = this.create_bind_groups(
       device,
-      shader_set,
+      effect.get_effect_name(),
       compute_pipelines,
       render_pipelines,
       buffers,
@@ -186,8 +197,8 @@ export class WebGPUContext {
       device,
       context,
       format,
-      shader_set.replaceAll("-", "_"),
-      shader_config,
+      effect.get_effect_name(),
+      effect.get_shader_params(),
       shaders_compiled,
       buffers,
       compute_pipelines,
@@ -363,13 +374,36 @@ export class WebGPUContext {
    * @param name - The name for the shader set
    * @returns the shaders
    */
-  private static async load_shaders(name: string) {
-    const s = name.replaceAll("-", "_");
-    const comp = "";
+  private static async load_shaders(effect: ParticleEffect) {
+    var comp_s = "";
+    var vert_s = "";
+    var frag_s = "";
 
-    const comp_key = `${s}_comp` as keyof typeof shader_registry;
-    const vert_key = `${s}_vert` as keyof typeof shader_registry;
-    const frag_key = `${s}_frag` as keyof typeof shader_registry;
+    switch (true) {
+      case effect instanceof ScatterFadeEffect:
+        comp_s = `scatter_fade_comp`;
+        vert_s = `scatter_fade_vert`;
+        frag_s = `scatter_fade_frag`;
+        break;
+      case effect instanceof ScatterSwirlEffect:
+        comp_s = `scatter_swirl_comp`;
+        vert_s = `scatter_swirl_vert`;
+        frag_s = `scatter_swirl_frag`;
+        break;
+      case effect instanceof FireworksEffect:
+        comp_s = `fireworks_comp`;
+        vert_s = `fireworks_vert`;
+        frag_s = `fireworks_frag`;
+        break;
+    }
+
+    if (comp_s === "" || vert_s === "" || frag_s === "") {
+      throw new Error(`Unknown shader effect passed to WebGPUContext`);
+    }
+
+    const comp_key = comp_s as keyof typeof shader_registry;
+    const vert_key = vert_s as keyof typeof shader_registry;
+    const frag_key = frag_s as keyof typeof shader_registry;
 
     const compute = shader_registry[comp_key];
     const vert = shader_registry[vert_key];
