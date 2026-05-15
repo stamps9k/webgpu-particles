@@ -8,7 +8,6 @@ import { emit } from "node:cluster";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
-  private MAX_PARTICLES = 10000;
   private WORKGROUP_SIZE = 10;
   private emitter: Emitter;
   private effect: ParticleEffect;
@@ -88,10 +87,14 @@ export class ParticleEngine {
     this.ctx.build_compute_pass(
       encoder,
       uniform_data,
-      this.MAX_PARTICLES,
+      this.effect.get_max_particles(),
       this.WORKGROUP_SIZE,
     );
-    this.ctx.build_render_pass(encoder, uniform_data, this.MAX_PARTICLES);
+    this.ctx.build_render_pass(
+      encoder,
+      uniform_data,
+      this.effect.get_max_particles(),
+    );
 
     // ── submit ────────────────────────────────────────────────────────────────
     this.ctx.end_frame(encoder);
@@ -124,9 +127,9 @@ export class ParticleEngine {
    *
    */
   private buffer_particles(particles: Particle[]) {
-    const data = new Float32Array(this.MAX_PARTICLES * 12);
+    const data = new Float32Array(this.effect.get_max_particles() * 12);
 
-    for (let i = 0; i < this.MAX_PARTICLES; i++) {
+    for (let i = 0; i < this.effect.get_max_particles(); i++) {
       const offset = i * 12;
 
       //Generate the particles position based on emitter type
