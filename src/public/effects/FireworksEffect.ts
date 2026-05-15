@@ -1,6 +1,7 @@
 import { ParticleEffect } from "./ParticleEffect";
 import { Particle } from "../Particle";
 import { ShaderParams } from "../ShaderParams";
+import { ParticleType } from "../enums/ParticleTypes";
 
 export class FireworksEffect implements ParticleEffect {
   private MAX_PARTICLES;
@@ -31,22 +32,21 @@ export class FireworksEffect implements ParticleEffect {
   }
 
   seed_particles(): Particle[] {
-    var particles: Particle[] = [];
-
-    for (const particle of particles) {
+    return Array.from({ length: this.ROCKET_COUNT }, () => {
       const angle = Math.random() * Math.PI * 2;
       const speed = 100 + Math.random() * 300;
 
-      particle.position = [0, 0]; // engine overwrites from emitter pos
-      particle.velocity = [Math.cos(angle) * speed, Math.sin(angle) * speed];
-      particle.color = [Math.random(), Math.random(), Math.random(), 1.0];
-      particle.seed = Math.random();
-      particle.maxLife = 1.0 + Math.random() * 2.0;
-      particle.life = particle.maxLife;
-      particle.size = 2 + Math.random() * 6;
-    }
-
-    return particles;
+      return {
+        position: [0, 0],
+        velocity: [Math.cos(angle) * speed, Math.sin(angle) * speed],
+        color: [Math.random(), Math.random(), Math.random(), 1.0],
+        seed: Math.random(),
+        maxLife: 1.0 + Math.random() * 2.0,
+        life: 1.0 + Math.random() * 2.0,
+        size: 2 + Math.random() * 6,
+        type: ParticleType.Square,
+      };
+    });
   }
 
   get_shader_params(): ShaderParams {
