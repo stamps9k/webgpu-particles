@@ -120,6 +120,69 @@ export class ParticleEngine {
 
   /**
    *
+   * Generate all the raw particle data for the initial set of particles
+   *
+   */
+  private buffer_particles(particles: Particle[]) {
+    const data = new Float32Array(this.MAX_PARTICLES * 12);
+
+    for (let i = 0; i < this.MAX_PARTICLES; i++) {
+      const offset = i * 12;
+
+      //Generate the particles position based on emitter type
+      let x, y;
+      switch (this.emitter.type) {
+        case "point":
+          x = this.emitter.pos[0];
+          y = this.emitter.pos[1];
+          break;
+
+        case "circle":
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.sqrt(Math.random()) * (this.emitter.p1 ?? 0);
+          x = this.emitter.pos[0] + Math.cos(angle) * radius;
+          y = this.emitter.pos[1] + Math.sin(angle) * radius;
+          break;
+
+        case "rect":
+          x =
+            this.emitter.pos[0] +
+            (Math.random() - 0.5) * (this.emitter.p1 ?? 1);
+          y =
+            this.emitter.pos[1] +
+            (Math.random() - 0.5) * (this.emitter.p2 ?? 0);
+          break;
+
+        default:
+          x = 0;
+          y = 0;
+      }
+
+      // position (vec2f) — scatter randomly so they don't all spawn at once
+      data[offset + 0] = x; // x
+      data[offset + 1] = y; // y
+
+      // velocity (vec2f)
+      data[offset + 2] = (Math.random() - 0.5) * 400; // vx
+      data[offset + 3] = Math.random() * 300 + 0.2; // vy
+
+      // color (vec4f)
+      data[offset + 4] = Math.random(); // r
+      data[offset + 5] = Math.random(); // g
+      data[offset + 6] = Math.random(); // b
+      data[offset + 7] = 1.0; // a
+
+      data[offset + 8] = 0.0; // seed
+      data[offset + 9] = Math.random(); // life
+      data[offset + 10] = 1.0; // maxLife
+      data[offset + 11] = Math.random() * 8.0 + 4.0; // size (4–12px)
+    }
+
+    this.ctx.write_buffer("particle_buffer", 0, data);
+  }
+
+  /**
+   *
    * Creates an emitter of a given shape for a given canvas.
    *
    * @param emitter_shape the shape of the emitter
