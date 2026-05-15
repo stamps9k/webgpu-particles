@@ -1,11 +1,31 @@
 import { ParticleEffect } from "./ParticleEffect";
 import { Particle } from "../Particle";
 import { ShaderParams } from "../ShaderParams";
+import { ScatterFadeEffect } from "./ScatterFadeEffect";
 
 export class ScatterSwirlEffect implements ParticleEffect {
   private MAX_PARTICLES;
   private SPIN_STRENGTH;
   private PULL_STRENGTH;
+
+  private static rules: ValidationRule<ScatterSwirlEffect>[] = [
+    {
+      check: (e) => e.MAX_PARTICLES > 0,
+      message: "Max Particles must be greater than 0",
+    },
+    {
+      check: (e) => e.MAX_PARTICLES <= 100000,
+      message: "Max particles must not exceed 100,000",
+    },
+    {
+      check: (e) => e.SPIN_STRENGTH < 0,
+      message: "Spin strength must be greater than 0",
+    },
+    {
+      check: (e) => e.PULL_STRENGTH < 0,
+      message: "Pull strength must be greater than 0",
+    },
+  ];
 
   public constructor(max_particles: number) {
     this.MAX_PARTICLES = max_particles;
@@ -48,5 +68,9 @@ export class ScatterSwirlEffect implements ParticleEffect {
 
   get_effect_name(): string {
     return "scatter-swirl";
+  }
+
+  validate(): ValidationResult {
+    return validate(this, ScatterSwirlEffect.rules);
   }
 }

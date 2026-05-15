@@ -192,10 +192,10 @@ export class ParticleEngine {
    */
   private generate_emitter(emitter_config: EmitterConfig): Emitter {
     return {
-      type: emitter_config.emitterType,
-      pos: emitter_config.emitterPos,
-      p1: emitter_config.emitterP1 ?? 50,
-      p2: emitter_config.emitterP2 ?? 50,
+      type: emitter_config.emitter_type,
+      pos: emitter_config.emitter_pos,
+      p1: emitter_config.emitter_p1 ?? 50,
+      p2: emitter_config.emitter_p2 ?? 50,
     };
   }
 

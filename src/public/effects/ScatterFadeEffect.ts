@@ -5,6 +5,17 @@ import { ShaderParams } from "../ShaderParams";
 export class ScatterFadeEffect implements ParticleEffect {
   private MAX_PARTICLES;
 
+  private static rules: ValidationRule<ScatterFadeEffect>[] = [
+    {
+      check: (e) => e.MAX_PARTICLES > 0,
+      message: "Max Particles must be greater than 0",
+    },
+    {
+      check: (e) => e.MAX_PARTICLES <= 100000,
+      message: "Max particles must not exceed 100,000",
+    },
+  ];
+
   public constructor(max_particles: number) {
     this.MAX_PARTICLES = max_particles;
   }
@@ -38,5 +49,9 @@ export class ScatterFadeEffect implements ParticleEffect {
 
   get_effect_name(): string {
     return "scatter-fade";
+  }
+
+  validate(): ValidationResult {
+    return validate(this, ScatterFadeEffect.rules);
   }
 }

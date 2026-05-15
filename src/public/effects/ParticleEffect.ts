@@ -1,5 +1,4 @@
 import { Particle } from "../Particle";
-import { EmitterConfig } from "../EmitterConfig";
 import { ShaderParams } from "../ShaderParams";
 
 export interface ParticleEffect {
@@ -7,4 +6,5 @@ export interface ParticleEffect {
   get_shader_params(): ShaderParams; // sp0–sp4
   get_max_particles(): number;
   get_effect_name(): string;
+  validate(): ValidationResult;
 }

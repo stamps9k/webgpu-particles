@@ -8,6 +8,21 @@ export class FireworksEffect implements ParticleEffect {
   private SPARK_SPEED;
   private ROCKET_COUNT;
 
+  private static rules: ValidationRule<FireworksEffect>[] = [
+    {
+      check: (e) => e.MAX_PARTICLES > 0,
+      message: "Max Particles must be greater than 0",
+    },
+    {
+      check: (e) => e.MAX_PARTICLES <= 100000,
+      message: "Max particles must not exceed 100,000",
+    },
+    {
+      check: (e) => e.LAUNCH_SPEED < 0,
+      message: "Lanuch Speed must be greater than 0",
+    },
+  ];
+
   public constructor(max_particles: number, rocket_number: number) {
     this.MAX_PARTICLES = max_particles;
     this.ROCKET_COUNT = rocket_number;
@@ -50,5 +65,9 @@ export class FireworksEffect implements ParticleEffect {
 
   get_effect_name(): string {
     return "fireworks";
+  }
+
+  validate(): ValidationResult {
+    return validate(this, FireworksEffect.rules);
   }
 }

@@ -26,6 +26,13 @@ export function init(
   particle_effect: ParticleEffect,
   emitter_config: EmitterConfig,
 ): Promise<ParticleEngine> {
+  //First validate everything.
+  var valid_result = particle_effect.validate();
+  if (!valid_result.valid) throw new Error(valid_result.message);
+  valid_result = emitter_config.validate();
+  if (!valid_result.valid) throw new Error(valid_result.message);
+
+  //Then start the engine if all is ok.
   return ParticleEngine.init(canvas, particle_effect, emitter_config);
 }
 
