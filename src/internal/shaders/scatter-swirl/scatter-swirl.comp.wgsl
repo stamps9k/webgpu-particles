@@ -26,22 +26,37 @@ struct Particle {
 @group(0) @binding(0) var<uniform>             uniforms  : Uniforms;
 @group(0) @binding(1) var<storage, read_write> particles : array<Particle>;
 
-fn rand(seed: f32) -> f32 {
+/*fn rand(seed: f32) -> f32 {
     return fract(sin(seed * 127.1 + 311.7) * 43758.5453);
+}*/
+
+// -- RNG ----------------------------------------------------------
+fn pcg(v: u32) -> u32 {
+    let state = v * 747796405u + 2891336453u;
+    let word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
 }
 
-fn respawn(i: u32) -> Particle {
-    var p: Particle;
-    let r     = rand(f32(i) * 1.3 + uniforms.time) * uniforms.emitterP1;
-    let angle = rand(f32(i) * 2.7 + uniforms.time) * 6.2831853;
-    p.position = uniforms.emitterPos + vec2f(cos(angle), sin(angle)) * r;
-    p.velocity = vec2f(0.0);
-    p.seed     = rand(f32(i) * 3.9 + uniforms.time);
-    p.life     = 1.0;
-    p.maxLife  = rand(f32(i) * 5.1 + uniforms.time) * 2.0 + 1.0;
-    p.color    = vec4f(1.0);
-    p.size     = 6.0;
-    return p;
+fn rand_f32(seed: u32) -> f32 {
+    return f32(pcg(seed)) / f32(0xffffffffu);
+}
+
+// -----------------------------------------------------------------------------
+
+fn respawn(i: u32, seed: f32) -> Particle {
+	var p: Particle;
+	// Mix the particle's carried seed into i to get variation across respawns
+	let s = u32(seed * f32(0xffffffffu));
+	let r     = rand_f32(pcg(i ^ s))             * uniforms.emitterP1;
+	let angle = rand_f32(pcg((i ^ s) + 100000u))   * 6.2831853;
+	p.position = uniforms.emitterPos + vec2f(cos(angle), sin(angle)) * r;
+	p.velocity = vec2f(0.0);
+	p.seed     = rand_f32(pcg((i ^ s) + 200000u));  // update seed for next respawn
+	p.life     = 1.0;
+	p.maxLife  = rand_f32(pcg((i ^ s) + 300000u)) * 2.0 + 1.0;
+	p.color    = vec4f(1.0);
+	p.size     = 6.0;
+	return p;
 }
 
 @compute @workgroup_size(64)
@@ -54,8 +69,8 @@ fn main(@builtin(global_invocation_id) id: vec3u) {
     p.life -= uniforms.deltaTime / p.maxLife;
 
     if (p.life <= 0.0) {
-        particles[i] = respawn(i);
-        return;
+			particles[i] = respawn(i, p.seed);
+			return;
     }
 
     // Vector from particle to vortex center

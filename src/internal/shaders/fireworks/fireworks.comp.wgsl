@@ -27,10 +27,17 @@ struct Particle {
 @group(0) @binding(1) var<storage, read_write> particles : array<Particle>;
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-
-fn rand(seed: f32) -> f32 {
-    return fract(sin(seed * 127.1 + 311.7) * 43758.5453);
+// -- RNG ----------------------------------------------------------
+fn pcg(v: u32) -> u32 {
+    let state = v * 747796405u + 2891336453u;
+    let word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
 }
+
+fn rand_f32(seed: u32) -> f32 {
+    return f32(pcg(seed)) / f32(0xffffffffu);
+}
+// -----------------------------------------------------------------------------
 
 fn dormantSpark() -> Particle {
     var p: Particle;
@@ -47,11 +54,11 @@ fn dormantSpark() -> Particle {
 fn respawnRocket(i: u32) -> Particle {
     var p: Particle;
 
-    let r1 = rand(f32(i) * 1.1 + uniforms.time);
-    let r2 = rand(f32(i) * 2.3 + uniforms.time);
-    let r3 = rand(f32(i) * 3.7 + uniforms.time);
-    let r4 = rand(f32(i) * 4.9 + uniforms.time);
-    let r5 = rand(f32(i) * 5.3 + uniforms.time);
+    let r1 = rand_f32(pcg(i));
+    let r2 = rand_f32(pcg(i + 100000u));
+    let r3 = rand_f32(pcg(i + 200000u));
+    let r4 = rand_f32(pcg(i + 300000u));
+    let r5 = rand_f32(pcg(i + 400000u));
 
     let angle  = (r2 - 0.5) * 0.4;
 		let mod_speed = (0.8 + (r2 * 0.2)) * -uniforms.sp0;
@@ -99,9 +106,14 @@ fn main_rockets(@builtin(global_invocation_id) id: vec3u) {
 
 @compute @workgroup_size(64)
 fn main_sparks(@builtin(global_invocation_id) id: vec3u) {
-    let i              = id.x;
+		let i              = id.x;
     let rocketCount    = u32(uniforms.sp3);
     let totalParticles = arrayLength(&particles);
+
+		let r1 = rand_f32(pcg(i));
+    let r2 = rand_f32(pcg(i + 100000u));
+    let r3 = rand_f32(pcg(i + 200000u));
+    let r4 = rand_f32(pcg(i + 300000u));
 
     // Only process spark slots
     if (i < rocketCount || i >= totalParticles) { return; }
@@ -127,8 +139,8 @@ fn main_sparks(@builtin(global_invocation_id) id: vec3u) {
     // Owner rocket just peaked — activate this spark
     if (rocket.seed == 0.25 && p.size == 0.0) {
         let s = i;
-        let angle = rand(f32(s) * 7.3 + uniforms.time) * 6.2831853;
-        let speed = rand(f32(s) * 8.1 + uniforms.time) * uniforms.sp1
+        let angle = r1 * 6.2831853;
+        let speed = r2 * uniforms.sp1
                   + uniforms.sp1 * 0.3;
 
         p.position = rocket.position;
@@ -136,8 +148,8 @@ fn main_sparks(@builtin(global_invocation_id) id: vec3u) {
         p.color    = vec4f(rocket.color.rgb, 1.0);
         p.seed     = 1.0;
         p.life     = 1.0;
-        p.maxLife  = rand(f32(s) * 9.3  + uniforms.time) * 1.5 + 0.5;
-        p.size     = rand(f32(s) * 10.7 + uniforms.time) * 9.0 + 6.0;
+        p.maxLife  = r3 * 1.5 + 0.5;
+        p.size     = r4 * 9.0 + 6.0;
         particles[i] = p;
         return;
     }

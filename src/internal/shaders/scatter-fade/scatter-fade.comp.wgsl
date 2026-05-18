@@ -19,7 +19,7 @@ struct Particle {
 	position : vec2f,
 	velocity : vec2f,
 	color    : vec4f,
-	seed		 : f32,
+	seed		 : u32,
 	life     : f32,
 	maxLife  : f32,
 	size     : f32,
@@ -31,21 +31,27 @@ struct Particle {
 @group(0) @binding(1) var<storage, read_write> particles : array<Particle>;
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-
-// Cheap stateless RNG — returns a pseudo-random f32 in [0, 1)
-fn rand(seed: f32) -> f32 {
-	return fract(sin(seed * 127.1 + uniforms.time * 311.7) * 43758.5453);
+// -- RNG ----------------------------------------------------------
+fn pcg(v: u32) -> u32 {
+    let state = v * 747796405u + 2891336453u;
+    let word = ((state >> ((state >> 28u) + 4u)) ^ state) * 277803737u;
+    return (word >> 22u) ^ word;
 }
+
+fn rand_f32(seed: u32) -> f32 {
+    return f32(pcg(seed)) / f32(0xffffffffu);
+}
+// -----------------------------------------------------------------------------
 
 fn respawn(i: u32) -> Particle {
 	var p: Particle;
-	let r1 = rand(f32(i) * 1.0);
-	let r2 = rand(f32(i) * 2.0);
-	let r3 = rand(f32(i) * 3.0);
-	let r4 = rand(f32(i) * 4.0);
-	let r5 = rand(f32(i) * 5.0);
-	let r6 = rand(f32(i) * 6.0);
-	let r7 = rand(f32(i) * 7.0);
+	let r1 = rand_f32(pcg(i));
+	let r2 = rand_f32(pcg(i + 100000u));
+	let r3 = rand_f32(pcg(i + 200000u));
+	let r4 = rand_f32(pcg(i + 300000u));
+	let r5 = rand_f32(pcg(i + 400000u));
+	let r6 = rand_f32(pcg(i + 500000u));
+	let r7 = rand_f32(pcg(i + 600000u));
 
 	var spawnPos: vec2f;
 	if (uniforms.emitterType == 0.0) {
@@ -53,20 +59,20 @@ fn respawn(i: u32) -> Particle {
 		spawnPos = uniforms.emitterPos;
 	} else if (uniforms.emitterType == 1.0) {
 		// circle — random point within radius
-		let angle  = rand(f32(i) * 7.0) * 6.2832;
-		let radius = sqrt(rand(f32(i) * 8.0)) * uniforms.emitterP1;
+		let angle  = rand_f32(i * 7) * 6.2832;
+		let radius = sqrt(rand_f32(i * 8)) * uniforms.emitterP1;
 		spawnPos   = uniforms.emitterPos + vec2f(cos(angle), sin(angle)) * radius;
 	} else if (uniforms.emitterType == 2.0) {
 		// rect — random point within width/height
-		let rx = (rand(f32(i) * 7.0) - 0.5) * uniforms.emitterP1;
-		let ry = (rand(f32(i) * 8.0) - 0.5) * uniforms.emitterP2;
+		let rx = (rand_f32(i * 7) - 0.5) * uniforms.emitterP1;
+		let ry = (rand_f32(i * 8) - 0.5) * uniforms.emitterP2;
 		spawnPos = uniforms.emitterPos + vec2f(rx, ry);
 	}
 
 	p.position = spawnPos;   // random position across the full clip space [-1, 1]
 	p.velocity = vec2f((r1 - 0.5) * 400.0, -(r2 * 300.0 + 100.0));
 	p.color    = vec4f(r3, r4, 1.0 - r3, 1.0);            // random hue
-	p.seed 		 = rand(f32(i) * 3.9 + uniforms.time);
+	p.seed 		 = pcg(i + u32(uniforms.time * 1000.0));		// random seed
 	p.life     = 1.0;                                     // fully alive
 	p.maxLife  = r7 * 2.0 + 0.5;  												// 0.5–2.5 seconds
 	p.size     = r1 * 8.0 + 4.0;                          // 4–12 px
