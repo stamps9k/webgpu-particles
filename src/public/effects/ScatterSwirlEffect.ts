@@ -19,11 +19,11 @@ export class ScatterSwirlEffect implements ParticleEffect {
       message: "Max particles must not exceed 100,000",
     },
     {
-      check: (e) => e.SPIN_STRENGTH < 0,
+      check: (e) => e.SPIN_STRENGTH > 0,
       message: "Spin strength must be greater than 0",
     },
     {
-      check: (e) => e.PULL_STRENGTH < 0,
+      check: (e) => e.PULL_STRENGTH > 0,
       message: "Pull strength must be greater than 0",
     },
   ];
