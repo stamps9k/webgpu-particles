@@ -20,7 +20,7 @@ export class FireworksEffect implements ParticleEffect {
       message: "Max particles must not exceed 100,000",
     },
     {
-      check: (e) => e.LAUNCH_SPEED < 0,
+      check: (e) => e.LAUNCH_SPEED > 0,
       message: "Lanuch Speed must be greater than 0",
     },
   ];
