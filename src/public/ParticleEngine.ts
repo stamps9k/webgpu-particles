@@ -262,8 +262,14 @@ export class ParticleEngine {
     emitter_config: EmitterConfig,
     options: WebGPUContextOptions = {},
   ): Promise<ParticleEngine> {
-    const tmp_ctx = await WebGPUContext.init(canvas, options, effect);
+    //First validate everything.
+    var valid_result = effect.validate();
+    if (!valid_result.valid) throw new Error(valid_result.message);
+    valid_result = emitter_config.validate();
+    if (!valid_result.valid) throw new Error(valid_result.message);
 
+    //Then start up if there was no problems
+    const tmp_ctx = await WebGPUContext.init(canvas, options, effect);
     const result: ParticleEngine = new ParticleEngine(
       canvas,
       tmp_ctx,

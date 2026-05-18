@@ -1,3 +1,5 @@
+import { ValidationRule, validate } from "./types/ValidationRule";
+
 export class EmitterConfig {
   public emitter_type: string;
   public emitter_pos: [number, number];

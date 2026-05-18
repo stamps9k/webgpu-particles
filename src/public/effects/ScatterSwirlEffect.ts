@@ -2,6 +2,7 @@ import { ParticleEffect } from "./ParticleEffect";
 import { Particle } from "../Particle";
 import { ShaderParams } from "../ShaderParams";
 import { ParticleType } from "../enums/ParticleTypes";
+import { validate, ValidationRule } from "../types/ValidationRule";
 
 export class ScatterSwirlEffect implements ParticleEffect {
   private MAX_PARTICLES;
