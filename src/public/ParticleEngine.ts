@@ -8,7 +8,7 @@ import { emit } from "node:cluster";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
-  private WORKGROUP_SIZE = 10;
+  private WORKGROUP_SIZE = 64;
   private emitter: Emitter;
   private effect: ParticleEffect;
   private canvas: HTMLCanvasElement;
