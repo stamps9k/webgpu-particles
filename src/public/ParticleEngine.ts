@@ -8,6 +8,7 @@ import { emit } from "node:cluster";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
+  // #region --- The class properties ------------------------------------------
   private WORKGROUP_SIZE = 64;
   private emitter: Emitter;
   private effect: ParticleEffect;
@@ -15,6 +16,7 @@ export class ParticleEngine {
   private ctx: WebGPUContext;
   private particle_type: ParticleType;
   private last_time: number = performance.now();
+  // #endregion ----------------------------------------------------------------
 
   /**
    *
@@ -64,7 +66,7 @@ export class ParticleEngine {
     const emitter_data = this.generate_emitter_data();
     const shader_params = this.effect.get_shader_params();
 
-    // ── update uniforms ───────────────────────────────────────────────────────
+    // #region --- Update the shader uniforms ----------------------------------
     const uniform_data = new Float32Array([
       delta_time,
       now / 1000,
@@ -95,10 +97,12 @@ export class ParticleEngine {
       uniform_data,
       this.effect.get_max_particles(),
     );
+    // #endregion --------------------------------------------------------------
 
-    // ── submit ────────────────────────────────────────────────────────────────
+    // #region --- submit ------------------------------------------------------
     this.ctx.end_frame(encoder);
     requestAnimationFrame(this.animate_particles);
+    // #endregion
   };
 
   /**
@@ -116,15 +120,20 @@ export class ParticleEngine {
     this.ctx.end_frame(encoder);
   }
 
+  /**
+   * Update the canvas on resize.
+   *
+   * @param canvas
+   */
   public resize(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
-    //this.emitter = this.generate_emitter(this, canvas);
   }
 
   /**
    *
-   * Generate all the raw particle data for the initial set of particles
+   * Generate all the raw particle data and write to the GPU Buffer
    *
+   * @param particles - the particles to be buffered
    */
   private buffer_particles(particles: Particle[]) {
     const data = new Float32Array(this.effect.get_max_particles() * 12);
@@ -132,7 +141,7 @@ export class ParticleEngine {
     for (let i = 0; i < this.effect.get_max_particles(); i++) {
       const offset = i * 12;
 
-      //Generate the particles position based on emitter type
+      // #region --- Generate the particles position based on emitter type -----
       let x, y;
       switch (this.emitter.type) {
         case "point":
@@ -160,7 +169,9 @@ export class ParticleEngine {
           x = 0;
           y = 0;
       }
+      // #endregion ------------------------------------------------------------
 
+      // #region --- Add to the buffer array -----------------------------------
       // position (vec2f) — scatter randomly so they don't all spawn at once
       data[offset + 0] = x; // x
       data[offset + 1] = y; // y
@@ -179,8 +190,10 @@ export class ParticleEngine {
       data[offset + 9] = Math.random(); // life
       data[offset + 10] = 1.0; // maxLife
       data[offset + 11] = Math.random() * 8.0 + 4.0; // size (4–12px)
+      // #endregion
     }
 
+    // Write to the buffer
     this.ctx.write_buffer("particle_buffer", 0, data);
   }
 
@@ -262,13 +275,14 @@ export class ParticleEngine {
     emitter_config: EmitterConfig,
     options: WebGPUContextOptions = {},
   ): Promise<ParticleEngine> {
-    //First validate everything.
+    // #region --- Validate everything -----------------------------------------
     var valid_result = effect.validate();
     if (!valid_result.valid) throw new Error(valid_result.message);
     valid_result = emitter_config.validate();
     if (!valid_result.valid) throw new Error(valid_result.message);
+    // #endregion --------------------------------------------------------------
 
-    //Then start up if there was no problems
+    // #region --- Start up if there was no problems ---------------------------
     const tmp_ctx = await WebGPUContext.init(canvas, options, effect);
     const result: ParticleEngine = new ParticleEngine(
       canvas,
@@ -276,13 +290,17 @@ export class ParticleEngine {
       effect,
       emitter_config,
     );
+    // #endregion --------------------------------------------------------------
 
+    // #region --- Set initial values ------------------------------------------
     var particles: Particle[] = effect.seed_particles();
     result.buffer_particles(particles);
+    // #endregion --------------------------------------------------------------
 
     return result;
   }
 
+  /*
   static normalize_shader_config(
     shader_set: string,
     shader_config: Record<string, string>,
@@ -312,5 +330,5 @@ export class ParticleEngine {
         break;
     }
     return shader_config;
-  }
+  }*/
 }

@@ -1,3 +1,4 @@
+/** Definition of the custom parameters available for use by all shaders in the library */
 export interface ShaderParams {
   sp0: number;
   sp1: number;

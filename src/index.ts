@@ -29,6 +29,7 @@ export function init(
   return ParticleEngine.init(canvas, particle_effect, emitter_config);
 }
 
+// #region --- Export items for use by library users ---------------------------
 export { ParticleEngine } from "./public/ParticleEngine";
 export { ParticleType } from "./public/enums/ParticleTypes";
 export { ParticleEffect } from "./public/effects/ParticleEffect";
@@ -36,3 +37,4 @@ export { ScatterFadeEffect } from "./public/effects/ScatterFadeEffect";
 export { ScatterSwirlEffect } from "./public/effects/ScatterSwirlEffect";
 export { FireworksEffect } from "./public/effects/FireworksEffect";
 export { EmitterConfig } from "./public/EmitterConfig";
+// #endregion ------------------------------------------------------------------

@@ -4,11 +4,16 @@ import { ShaderParams } from "../ShaderParams";
 import { ParticleType } from "../enums/ParticleTypes";
 import { validate, ValidationRule } from "../types/ValidationRule";
 
+/**
+ *
+ * A class Representing the ScatterSwirl particle effect
+ *
+ */
 export class ScatterSwirlEffect implements ParticleEffect {
+  // #region --- The class properties ------------------------------------------
   private MAX_PARTICLES;
   private SPIN_STRENGTH;
   private PULL_STRENGTH;
-
   private static rules: ValidationRule<ScatterSwirlEffect>[] = [
     {
       check: (e) => e.MAX_PARTICLES > 0,
@@ -27,13 +32,25 @@ export class ScatterSwirlEffect implements ParticleEffect {
       message: "Pull strength must be greater than 0",
     },
   ];
+  // #endregion ----------------------------------------------------------------
 
+  /**
+   * The class constructor. Takes the user definable properties and returns an instance of the class
+   *
+   * @param max_particles - The max number of particles for the effect
+   */
   public constructor(max_particles: number) {
     this.MAX_PARTICLES = max_particles;
     this.SPIN_STRENGTH = 150;
     this.PULL_STRENGTH = 30;
   }
 
+  /**
+   * Generate all the particles for the intial buffering of the cpu.
+   *
+   * @returns - An array of particles with random initial values
+   *
+   */
   seed_particles(): Particle[] {
     return Array.from({ length: this.MAX_PARTICLES }, () => {
       const angle = Math.random() * Math.PI * 2;
@@ -52,24 +69,43 @@ export class ScatterSwirlEffect implements ParticleEffect {
     });
   }
 
+  /**
+   * Get the various custom shader particle parameters
+   *
+   * @returns an object representing the custom shader params.
+   */
   get_shader_params(): ShaderParams {
     return {
       sp0: this.SPIN_STRENGTH, // - spin strength
       sp1: this.PULL_STRENGTH, // - pull strength
-      sp2: 0,
-      sp3: 0,
-      sp4: 0,
+      sp2: 0, // - Unused
+      sp3: 0, // - Unused
+      sp4: 0, // - Unused
     };
   }
 
+  /**
+   * Getter for the max_particles property.
+   *
+   * @returns - the maximum number of particles for the effect.
+   */
   get_max_particles(): number {
     return this.MAX_PARTICLES;
   }
 
+  /**
+   * Fetch the name of the effect as a string
+   *
+   */
   get_effect_name(): string {
     return "scatter-swirl";
   }
 
+  /**
+   * Validate the object properties
+   *
+   * @returns
+   */
   validate(): ValidationResult {
     return validate(this, ScatterSwirlEffect.rules);
   }

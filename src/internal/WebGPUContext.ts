@@ -1,5 +1,3 @@
-//import { scatter_fade_comp, scatter_fade_vert, scatter_fade_frag } from './shaders';
-import { resourceLimits } from "node:worker_threads";
 import { shader_registry } from "./shaders";
 import { ParticleEffect } from "../public/effects/ParticleEffect";
 import { ScatterFadeEffect } from "../public/effects/ScatterFadeEffect";
@@ -93,7 +91,7 @@ export class WebGPUContext {
   ): Promise<WebGPUContext> {
     const particle_stride = 48;
 
-    // -- Create and configure the context
+    // #region --- Create and configure the context ----------------------------
     if (!navigator.gpu) {
       throw new Error("WebGPU is not supported in this environment.");
     }
@@ -129,8 +127,9 @@ export class WebGPUContext {
       format,
       alphaMode: "premultiplied",
     });
+    // #endregion --------------------------------------------------------------
 
-    // -- Create the shaders
+    // #region --- Create the shaders ------------------------------------------
     var shaders_text: Record<string, string> = await this.load_shaders(effect);
     var shaders_compiled: Record<string, GPUShaderModule> = {};
     shaders_compiled["compute"] = device.createShaderModule({
@@ -148,8 +147,9 @@ export class WebGPUContext {
       label: "particle_frag_shader",
     });
     await this.log_shader_errors(shaders_compiled["frag"]);
+    // #endregion --------------------------------------------------------------
 
-    // -- Create the buffers
+    // #region --- Create the buffers ------------------------------------------
     var buffers: Record<string, GPUBuffer> = {};
     /*
      * Uniform buffer is size 40 with the structure:
@@ -167,8 +167,9 @@ export class WebGPUContext {
       size: effect.get_max_particles() * particle_stride,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
+    // #endregion --------------------------------------------------------------
 
-    // -- Create the pipelines
+    // #region --- Create the pipelines ----------------------------------------
     var compute_pipelines: Record<string, GPUComputePipeline> =
       this.create_compute_pipelines(
         device,
@@ -181,8 +182,9 @@ export class WebGPUContext {
         effect.get_effect_name(),
         shaders_compiled,
       );
+    // #endregion --------------------------------------------------------------
 
-    // -- Create the bind groups
+    // #region --- Create the bind groups --------------------------------------
     var bind_groups: Record<string, GPUBindGroup> = this.create_bind_groups(
       device,
       effect.get_effect_name(),
@@ -190,8 +192,9 @@ export class WebGPUContext {
       render_pipelines,
       buffers,
     );
+    // #endregion --------------------------------------------------------------
 
-    // -- Create an object to hold all variables
+    // #region --- Return an object to hold all variables ----------------------
     return new WebGPUContext(
       adapter,
       device,
@@ -205,6 +208,7 @@ export class WebGPUContext {
       render_pipelines,
       bind_groups,
     );
+    // #endregion --------------------------------------------------------------
   }
 
   // -------------------------------------------------------------------------
@@ -281,7 +285,6 @@ export class WebGPUContext {
     max_particles: number,
     workgroup_size: number,
   ) {
-    // compute pass — simulate
     var compute = encoder.beginComputePass();
 
     switch (this.shader_set) {
@@ -375,6 +378,7 @@ export class WebGPUContext {
    * @returns the shaders
    */
   private static async load_shaders(effect: ParticleEffect) {
+    // #region --- Select the correct shader names -----------------------------
     var comp_s = "";
     var vert_s = "";
     var frag_s = "";
@@ -400,7 +404,9 @@ export class WebGPUContext {
     if (comp_s === "" || vert_s === "" || frag_s === "") {
       throw new Error(`Unknown shader effect passed to WebGPUContext`);
     }
+    // #endregion --------------------------------------------------------------
 
+    // #region --- Fetch shaders from the registry -----------------------------
     const comp_key = comp_s as keyof typeof shader_registry;
     const vert_key = vert_s as keyof typeof shader_registry;
     const frag_key = frag_s as keyof typeof shader_registry;
@@ -414,6 +420,7 @@ export class WebGPUContext {
         `No shaders found for "${name}". Available: ${Object.keys(shader_registry).join(", ")}`,
       );
     }
+    // #endregion -------------------------------------------------------------
 
     return { compute, vert, frag };
   }
@@ -423,7 +430,7 @@ export class WebGPUContext {
    * Create all needed compute pipelines. Different number of pipelines are made
    * depending on the particle affect required.
    *
-   * @param device - The device that the piepline
+   * @param device - The device that the piepline is attached to.
    * @param shader_set - The effect that is being created
    * @param shaders_compiled - The shaders associated with the affect
    * @returns - a set of pipelines for the effect
@@ -466,6 +473,15 @@ export class WebGPUContext {
     return result;
   }
 
+  /**
+   *
+   * Create the render pipeline for the effect.
+   *
+   * @param device - the device the pipeline is attached to.
+   * @param shader_set - the Effect that is being created
+   * @param shaders_compiled - The shaders associated with the effect
+   * @returns - the render pipeline for the effect
+   */
   private static create_render_pipelines(
     device: GPUDevice,
     shader_set: string,
@@ -485,6 +501,16 @@ export class WebGPUContext {
     return result;
   }
 
+  /**
+   * Creat the bind groups for the effect.
+   *
+   * @param device - The device that the bind groups attach to.
+   * @param shader_set- The effect that is being created.
+   * @param compute_pipelines - The compute pipelin(s) for the effect.
+   * @param render_pipelines - The render pipeline.
+   * @param buffers - The buffers for the effect.
+   * @returns a set of bind groups
+   */
   private static create_bind_groups(
     device: GPUDevice,
     shader_set: string,
@@ -546,7 +572,7 @@ export class WebGPUContext {
    * @param entryPoint - The shader entrypoint
    * @param layout - The GPUPipelineLayout
    * @param label - The name for the pipeline
-   * @returns the copmute pipeline
+   * @returns the compute pipeline
    */
   private static create_compute_pipeline(
     device: GPUDevice,
