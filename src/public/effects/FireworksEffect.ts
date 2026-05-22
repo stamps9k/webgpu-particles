@@ -15,6 +15,7 @@ export class FireworksEffect implements ParticleEffect {
   private LAUNCH_SPEED;
   private SPARK_SPEED;
   private ROCKET_COUNT;
+  private ping_pong = false;
 
   private static rules: ValidationRule<FireworksEffect>[] = [
     {

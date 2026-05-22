@@ -159,7 +159,7 @@ export class WebGPUContext {
      */
     buffers["uniform_buffer"] = device.createBuffer({
       label: "uniforms",
-      size: 56,
+      size: 80,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
     buffers["particle_buffer"] = device.createBuffer({

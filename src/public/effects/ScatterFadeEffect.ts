@@ -12,6 +12,7 @@ import { ValidationRule, validate } from "../types/ValidationRule";
 export class ScatterFadeEffect implements ParticleEffect {
   // #region --- The class properties ------------------------------------------
   private MAX_PARTICLES;
+  private ping_pong = false;
   private static rules: ValidationRule<ScatterFadeEffect>[] = [
     {
       check: (e) => e.MAX_PARTICLES > 0,

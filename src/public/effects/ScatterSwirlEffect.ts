@@ -14,6 +14,7 @@ export class ScatterSwirlEffect implements ParticleEffect {
   private MAX_PARTICLES;
   private SPIN_STRENGTH;
   private PULL_STRENGTH;
+  private ping_pong = false;
   private static rules: ValidationRule<ScatterSwirlEffect>[] = [
     {
       check: (e) => e.MAX_PARTICLES > 0,
