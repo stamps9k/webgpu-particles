@@ -85,6 +85,12 @@ export class FireworksEffect implements ParticleEffect {
       sp2: 200, // - gravity
       sp3: this.ROCKET_COUNT, // - Rocket Count
       sp4: 0, // - Unused
+      sp5: 0, // - Unused
+      sp6: 0, // - Unused
+      sp7: 0, // - Unused
+      sp8: 0, // - Unused
+      sp9: 0, // - Unused
+      sp10: 0, // - Unused
     };
   }
 

@@ -65,7 +65,19 @@ export class ScatterFadeEffect implements ParticleEffect {
    */
   get_shader_params(): ShaderParams {
     //This shader has no custom parameters
-    return { sp0: 0, sp1: 0, sp2: 0, sp3: 0, sp4: 0 };
+    return {
+      sp0: 0, // - Unused
+      sp1: 0, // - Unused
+      sp2: 0, // - Unused
+      sp3: 0, // - Unused
+      sp4: 0, // - Unused
+      sp5: 0, // - Unused
+      sp6: 0, // - Unused
+      sp7: 0, // - Unused
+      sp8: 0, // - Unused
+      sp9: 0, // - Unused
+      sp10: 0, // - Unused
+    };
   }
 
   /**

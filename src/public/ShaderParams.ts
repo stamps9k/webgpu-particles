@@ -5,4 +5,10 @@ export interface ShaderParams {
   sp2: number;
   sp3: number;
   sp4: number;
+  sp5: number;
+  sp6: number;
+  sp7: number;
+  sp8: number;
+  sp9: number;
+  sp10: number;
 }

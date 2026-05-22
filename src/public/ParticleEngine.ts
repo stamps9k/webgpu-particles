@@ -82,6 +82,12 @@ export class ParticleEngine {
       shader_params.sp2,
       shader_params.sp3,
       shader_params.sp4,
+      shader_params.sp5,
+      shader_params.sp6,
+      shader_params.sp7,
+      shader_params.sp8,
+      shader_params.sp9,
+      shader_params.sp10,
     ]);
     this.ctx.write_buffer("uniform_buffer", 0, uniform_data);
 

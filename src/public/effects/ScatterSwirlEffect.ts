@@ -81,6 +81,12 @@ export class ScatterSwirlEffect implements ParticleEffect {
       sp2: 0, // - Unused
       sp3: 0, // - Unused
       sp4: 0, // - Unused
+      sp5: 0, // - Unused
+      sp6: 0, // - Unused
+      sp7: 0, // - Unused
+      sp8: 0, // - Unused
+      sp9: 0, // - Unused
+      sp10: 0, // - Unused
     };
   }
 
