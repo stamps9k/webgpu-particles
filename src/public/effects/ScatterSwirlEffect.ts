@@ -109,6 +109,14 @@ export class ScatterSwirlEffect implements ParticleEffect {
   }
 
   /**
+   * Check if the effect uses ping pong buffering or not. This is used by the engine to determine how to buffer the particles on the gpu.
+   * @returns - a boolean representing whether the effect uses ping pong buffering or not.
+   */
+  is_ping_pong(): boolean {
+    return this.ping_pong;
+  }
+
+  /**
    * Validate the object properties
    *
    * @returns
