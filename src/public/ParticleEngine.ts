@@ -299,36 +299,4 @@ export class ParticleEngine {
 
     return result;
   }
-
-  /*
-  static normalize_shader_config(
-    shader_set: string,
-    shader_config: Record<string, string>,
-  ): Record<string, string> {
-    switch (shader_set) {
-      case "scatter-fade":
-        if (shader_config["max-particles"] === undefined)
-          shader_config["max-particles"] = "500";
-        if (shader_config["emitter-shape"] === undefined)
-          shader_config["emitter-shape"] = "Rectangle";
-        break;
-      case "scatter-swirl":
-        if (shader_config["max-particles"] === undefined)
-          shader_config["max-particles"] = "500";
-        if (shader_config["emitter-shape"] === undefined)
-          shader_config["emitter-shape"] = "Rectangle";
-        break;
-      case "fireworks":
-        if (shader_config["max-particles"] === undefined)
-          shader_config["max-particles"] = "500";
-        if (shader_config["rocket-count"] === undefined)
-          shader_config["rocket-count"] = "5";
-        shader_config["emitter-shape"] = "Rectangle";
-        break;
-      default:
-        throw new Error("Unknown shader-set type");
-        break;
-    }
-    return shader_config;
-  }*/
 }
