@@ -8,6 +8,9 @@ import scatter_swirl_comp from "./scatter-swirl/scatter-swirl.comp.wgsl";
 import fireworks_frag from "./fireworks/fireworks.frag.wgsl";
 import fireworks_vert from "./fireworks/fireworks.vert.wgsl";
 import fireworks_comp from "./fireworks/fireworks.comp.wgsl";
+import boids_frag from "./boids/boids.frag.wgsl";
+import boids_vert from "./boids/boids.vert.wgsl";
+import boids_comp from "./boids/boids.comp.wgsl";
 
 // Registry for dynamic lookup
 export const shader_registry = {
@@ -20,6 +23,9 @@ export const shader_registry = {
   fireworks_frag,
   fireworks_vert,
   fireworks_comp,
+  boids_frag,
+  boids_vert,
+  boids_comp,
 } as const;
 
 export type ShaderRegistry = typeof shader_registry;

@@ -4,6 +4,7 @@ import { ScatterFadeEffect } from "../public/effects/ScatterFadeEffect";
 import { ShaderParams } from "../public/ShaderParams";
 import { FireworksEffect } from "../public/effects/FireworksEffect";
 import { ScatterSwirlEffect } from "../public/effects/ScatterSwirlEffect";
+import { BoidsEffect } from "../public/effects/BoidsEffect";
 
 /** Custom options that the I may want to use */
 export interface WebGPUContextOptions {
@@ -149,24 +150,40 @@ export class WebGPUContext {
     await this.log_shader_errors(shaders_compiled["frag"]);
     // #endregion --------------------------------------------------------------
 
-    // #region --- Create the buffers ------------------------------------------
+    // #region --- Create the uniform buffer -----------------------------------
     var buffers: Record<string, GPUBuffer> = {};
     /*
-     * Uniform buffer is size 40 with the structure:
+     * Uniform buffer is size 80 with the structure:
      * deltaTime(4) + time(4) + canvasSize(8) +
      * emitterType(4) + emitterPos(8) + emitterP1(4) + emitterP2(4) +
-     * _pad(4)
+     * all sp_params (44)
      */
     buffers["uniform_buffer"] = device.createBuffer({
       label: "uniforms",
       size: 80,
       usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
     });
-    buffers["particle_buffer"] = device.createBuffer({
-      label: "particles",
-      size: effect.get_max_particles() * particle_stride,
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
-    });
+    // #endregion --------------------------------------------------------------
+
+    // #region --- Create the particle buffer ----------------------------------
+    if (effect.is_ping_pong()) {
+      buffers["particle_buffer_0"] = device.createBuffer({
+        label: "particles-0",
+        size: effect.get_max_particles() * particle_stride,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+      buffers["particle_buffer_1"] = device.createBuffer({
+        label: "particles-1",
+        size: effect.get_max_particles() * particle_stride,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+    } else {
+      buffers["particle_buffer_0"] = device.createBuffer({
+        label: "particles",
+        size: effect.get_max_particles() * particle_stride,
+        usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
+      });
+    }
     // #endregion --------------------------------------------------------------
 
     // #region --- Create the pipelines ----------------------------------------
@@ -282,25 +299,40 @@ export class WebGPUContext {
   build_compute_pass(
     encoder: GPUCommandEncoder,
     uniform_data: Float32Array,
-    max_particles: number,
+    effect: ParticleEffect,
     workgroup_size: number,
   ) {
     var compute = encoder.beginComputePass();
 
     switch (this.shader_set) {
+      case "boids":
+        const tmp = effect as BoidsEffect;
+        const bind_group = "compute_bind_group_" + (tmp.get_frame_index() % 2);
+        compute.setPipeline(this.compute_pipelines["compute_pipeline"]);
+        compute.setBindGroup(0, this.bind_groups[bind_group]);
+        compute.dispatchWorkgroups(
+          Math.ceil(effect.get_max_particles() / workgroup_size),
+        );
+        break;
       case "fireworks":
         compute.setPipeline(this.compute_pipelines["rocket_pipeline"]);
         compute.setBindGroup(0, this.bind_groups["rocket_bind_group"]);
-        compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+        compute.dispatchWorkgroups(
+          Math.ceil(effect.get_max_particles() / workgroup_size),
+        );
 
         compute.setPipeline(this.compute_pipelines["spark_pipeline"]);
         compute.setBindGroup(0, this.bind_groups["spark_bind_group"]);
-        compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+        compute.dispatchWorkgroups(
+          Math.ceil(effect.get_max_particles() / workgroup_size),
+        );
         break;
       default:
         compute.setPipeline(this.compute_pipelines["compute_pipeline"]);
         compute.setBindGroup(0, this.bind_groups["compute_bind_group"]);
-        compute.dispatchWorkgroups(Math.ceil(max_particles / workgroup_size));
+        compute.dispatchWorkgroups(
+          Math.ceil(effect.get_max_particles() / workgroup_size),
+        );
         break;
     }
     compute.end();
@@ -317,6 +349,7 @@ export class WebGPUContext {
   build_render_pass(
     encoder: GPUCommandEncoder,
     uniform_data: Float32Array,
+    effect: ParticleEffect,
     max_particles: number,
   ) {
     // render pass — draw
@@ -330,8 +363,20 @@ export class WebGPUContext {
         },
       ],
     });
-    render.setPipeline(this.render_pipelines["render_pipeline"]);
-    render.setBindGroup(0, this.bind_groups["render_bind_group"]);
+
+    switch (this.shader_set) {
+      case "boids":
+        const tmp = effect as BoidsEffect;
+        const bind_group = "render_bind_group_" + (tmp.get_frame_index() % 2);
+        render.setPipeline(this.render_pipelines["render_pipeline"]);
+        render.setBindGroup(0, this.bind_groups[bind_group]);
+        break;
+      default:
+        render.setPipeline(this.render_pipelines["render_pipeline"]);
+        render.setBindGroup(0, this.bind_groups["render_bind_group"]);
+        break;
+    }
+
     render.draw(6, max_particles); // 6 vertices × N instances
     render.end();
   }
@@ -399,6 +444,11 @@ export class WebGPUContext {
         vert_s = `fireworks_vert`;
         frag_s = `fireworks_frag`;
         break;
+      case effect instanceof BoidsEffect:
+        comp_s = `boids_comp`;
+        vert_s = `boids_vert`;
+        frag_s = `boids_frag`;
+        break;
     }
 
     if (comp_s === "" || vert_s === "" || frag_s === "") {
@@ -443,6 +493,23 @@ export class WebGPUContext {
     var result: Record<string, GPUComputePipeline> = {};
 
     switch (shader_set) {
+      /*case "boids":
+        result["particle_pipeline_0"] = this.create_compute_pipeline(
+          device,
+          shaders_compiled,
+          "main",
+          "auto",
+          "particle_pipeline_0",
+        );
+        result["particle_pipeline_1"] = this.create_compute_pipeline(
+          device,
+          shaders_compiled,
+          "main",
+          "auto",
+          "particle_pipeline_1",
+        );
+        break;
+				*/
       case "fireworks":
         result["rocket_pipeline"] = this.create_compute_pipeline(
           device,
@@ -521,26 +588,58 @@ export class WebGPUContext {
     var result: Record<string, GPUBindGroup> = {};
 
     switch (shader_set) {
+      case "boids":
+        result["compute_bind_group_0"] = device.createBindGroup({
+          layout: compute_pipelines["compute_pipeline"].getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: buffers["uniform_buffer"] } }, // write
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
+            { binding: 2, resource: { buffer: buffers["particle_buffer_1"] } }, // read
+          ],
+        });
+        result["compute_bind_group_1"] = device.createBindGroup({
+          layout: compute_pipelines["compute_pipeline"].getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: buffers["uniform_buffer"] } }, // read
+            { binding: 1, resource: { buffer: buffers["particle_buffer_1"] } }, // write
+            { binding: 2, resource: { buffer: buffers["particle_buffer_0"] } },
+          ],
+        });
+        result["render_bind_group_0"] = device.createBindGroup({
+          layout: render_pipelines["render_pipeline"].getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_1"] } },
+          ],
+        });
+        result["render_bind_group_1"] = device.createBindGroup({
+          layout: render_pipelines["render_pipeline"].getBindGroupLayout(0),
+          entries: [
+            { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
+          ],
+        });
+        break;
       case "fireworks":
         result["rocket_bind_group"] = device.createBindGroup({
           layout: compute_pipelines["rocket_pipeline"].getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-            { binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
           ],
         });
         result["spark_bind_group"] = device.createBindGroup({
           layout: compute_pipelines["spark_pipeline"].getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-            { binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
           ],
         });
         result["render_bind_group"] = device.createBindGroup({
           layout: render_pipelines["render_pipeline"].getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-            { binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
           ],
         });
         break;
@@ -549,14 +648,14 @@ export class WebGPUContext {
           layout: compute_pipelines["compute_pipeline"].getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-            { binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
           ],
         });
         result["render_bind_group"] = device.createBindGroup({
           layout: render_pipelines["render_pipeline"].getBindGroupLayout(0),
           entries: [
             { binding: 0, resource: { buffer: buffers["uniform_buffer"] } },
-            { binding: 1, resource: { buffer: buffers["particle_buffer"] } },
+            { binding: 1, resource: { buffer: buffers["particle_buffer_0"] } },
           ],
         });
     }

@@ -3,6 +3,7 @@ import { ParticleType } from "./enums/ParticleTypes";
 import { Emitter } from "./types/Emitters";
 import { ParticleEffect } from "./effects/ParticleEffect";
 import { Particle } from "./Particle";
+import { BoidsEffect } from "./effects/BoidsEffect";
 import { EmitterConfig } from "./EmitterConfig";
 import { emit } from "node:cluster";
 
@@ -95,12 +96,13 @@ export class ParticleEngine {
     this.ctx.build_compute_pass(
       encoder,
       uniform_data,
-      this.effect.get_max_particles(),
+      this.effect,
       this.WORKGROUP_SIZE,
     );
     this.ctx.build_render_pass(
       encoder,
       uniform_data,
+      this.effect,
       this.effect.get_max_particles(),
     );
     // #endregion --------------------------------------------------------------
@@ -108,6 +110,9 @@ export class ParticleEngine {
     // #region --- submit ------------------------------------------------------
     this.ctx.end_frame(encoder);
     requestAnimationFrame(this.animate_particles);
+    if (this.effect instanceof BoidsEffect) {
+      this.effect.increment_frame_index();
+    }
     // #endregion
   };
 
@@ -200,7 +205,7 @@ export class ParticleEngine {
     }
 
     // Write to the buffer
-    this.ctx.write_buffer("particle_buffer", 0, data);
+    this.ctx.write_buffer("particle_buffer_0", 0, data);
   }
 
   /**

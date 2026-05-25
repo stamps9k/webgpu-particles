@@ -20,6 +20,7 @@ export class BoidsEffect implements ParticleEffect {
   private MAX_SPEED;
   private MAX_FORCE;
   private ping_pong = true;
+  private frame_index = 0;
 
   private static rules: ValidationRule<BoidsEffect>[] = [
     {
@@ -119,6 +120,14 @@ export class BoidsEffect implements ParticleEffect {
    */
   get_effect_name(): string {
     return "boids";
+  }
+
+  get_frame_index(): number {
+    return this.frame_index;
+  }
+
+  increment_frame_index() {
+    this.frame_index = this.frame_index + 1;
   }
 
   /**

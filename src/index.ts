@@ -36,5 +36,6 @@ export { ParticleEffect } from "./public/effects/ParticleEffect";
 export { ScatterFadeEffect } from "./public/effects/ScatterFadeEffect";
 export { ScatterSwirlEffect } from "./public/effects/ScatterSwirlEffect";
 export { FireworksEffect } from "./public/effects/FireworksEffect";
+export { BoidsEffect } from "./public/effects/BoidsEffect";
 export { EmitterConfig } from "./public/EmitterConfig";
 // #endregion ------------------------------------------------------------------
