@@ -11,6 +11,7 @@ import { ValidationRule, validate } from "../types/ValidationRule";
  */
 export class BoidsEffect implements ParticleEffect {
   // #region --- The class properties ------------------------------------------
+  readonly kind = "BOIDS" as const;
   private MAX_PARTICLES;
   private PERCEPTION_RADIUS;
   private SEPERATION_RADIUS;

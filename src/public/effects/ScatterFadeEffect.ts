@@ -11,6 +11,7 @@ import { ValidationRule, validate } from "../types/ValidationRule";
  */
 export class ScatterFadeEffect implements ParticleEffect {
   // #region --- The class properties ------------------------------------------
+  readonly kind = "SCATTER_FADE" as const;
   private MAX_PARTICLES;
   private ping_pong = false;
   private static rules: ValidationRule<ScatterFadeEffect>[] = [
@@ -88,14 +89,6 @@ export class ScatterFadeEffect implements ParticleEffect {
    */
   get_max_particles(): number {
     return this.MAX_PARTICLES;
-  }
-
-  /**
-   * Fetch the name of the effect as a string
-   *
-   */
-  get_effect_name(): string {
-    return "scatter-fade";
   }
 
   /**

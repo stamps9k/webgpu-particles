@@ -11,6 +11,7 @@ import { ValidationRule, validate } from "../types/ValidationRule";
  */
 export class FireworksEffect implements ParticleEffect {
   // #region --- The class properties ------------------------------------------
+  readonly kind = "FIREWORKS" as const;
   private MAX_PARTICLES;
   private LAUNCH_SPEED;
   private SPARK_SPEED;

@@ -11,6 +11,7 @@ import { validate, ValidationRule } from "../types/ValidationRule";
  */
 export class ScatterSwirlEffect implements ParticleEffect {
   // #region --- The class properties ------------------------------------------
+  readonly kind = "SCATTER_SWIRL" as const;
   private MAX_PARTICLES;
   private SPIN_STRENGTH;
   private PULL_STRENGTH;

@@ -5,18 +5,18 @@ import { ParticleEffect } from "./effects/ParticleEffect";
 import { Particle } from "./Particle";
 import { BoidsEffect } from "./effects/BoidsEffect";
 import { EmitterConfig } from "./EmitterConfig";
-import { emit } from "node:cluster";
+import { EffectRendererFactory } from "../internal/EffectRenderer/EffectRendererFactory";
+import { EffectRenderer } from "../internal/EffectRenderer/EffectRenderer";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
   // #region --- The class properties ------------------------------------------
-  private WORKGROUP_SIZE = 64;
-  private emitter: Emitter;
-  private effect: ParticleEffect;
   private canvas: HTMLCanvasElement;
   private ctx: WebGPUContext;
-  private particle_type: ParticleType;
-  private last_time: number = performance.now();
+  private emitter: Emitter;
+  private effect: ParticleEffect;
+  private renderer: EffectRenderer;
+
   // #endregion ----------------------------------------------------------------
 
   /**
@@ -32,15 +32,15 @@ export class ParticleEngine {
   private constructor(
     canvas: HTMLCanvasElement,
     ctx: WebGPUContext,
+    emitter: Emitter,
     effect: ParticleEffect,
-    emitter_config: EmitterConfig,
+    renderer: EffectRenderer,
   ) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.emitter = this.generate_emitter(emitter_config);
+    this.emitter = emitter;
     this.effect = effect;
-    this.particle_type = ParticleType.Square;
-    this.last_time = performance.now();
+    this.renderer = renderer;
   }
 
   /**
@@ -60,60 +60,20 @@ export class ParticleEngine {
    *
    */
   public animate_particles = () => {
-    const now = performance.now();
-    const delta_time = (now - this.last_time) / 1000; // seconds
-    this.last_time = now;
-
-    const emitter_data = this.generate_emitter_data();
-    const shader_params = this.effect.get_shader_params();
-
-    // #region --- Update the shader uniforms ----------------------------------
-    const uniform_data = new Float32Array([
-      delta_time,
-      now / 1000,
-      this.canvas.width,
-      this.canvas.height,
-      emitter_data[0],
-      emitter_data[1],
-      emitter_data[2],
-      emitter_data[3],
-      emitter_data[4],
-      shader_params.sp0,
-      shader_params.sp1,
-      shader_params.sp2,
-      shader_params.sp3,
-      shader_params.sp4,
-      shader_params.sp5,
-      shader_params.sp6,
-      shader_params.sp7,
-      shader_params.sp8,
-      shader_params.sp9,
-      shader_params.sp10,
-    ]);
-    this.ctx.write_buffer("uniform_buffer", 0, uniform_data);
+    this.ctx.write_buffer(this.canvas, this.effect, this.emitter);
 
     const encoder = this.ctx.begin_frame();
-    this.ctx.build_compute_pass(
+    this.renderer.encode_compute_pass(encoder, this.effect);
+    this.renderer.encode_render_pass(
       encoder,
-      uniform_data,
-      this.effect,
-      this.WORKGROUP_SIZE,
+      this.ctx.get_current_color_view(),
     );
-    this.ctx.build_render_pass(
-      encoder,
-      uniform_data,
-      this.effect,
-      this.effect.get_max_particles(),
-    );
-    // #endregion --------------------------------------------------------------
 
-    // #region --- submit ------------------------------------------------------
     this.ctx.end_frame(encoder);
     requestAnimationFrame(this.animate_particles);
     if (this.effect instanceof BoidsEffect) {
       this.effect.increment_frame_index();
     }
-    // #endregion
   };
 
   /**
@@ -142,131 +102,19 @@ export class ParticleEngine {
 
   /**
    *
-   * Generate all the raw particle data and write to the GPU Buffer
-   *
-   * @param particles - the particles to be buffered
-   */
-  private buffer_particles(particles: Particle[]) {
-    const data = new Float32Array(this.effect.get_max_particles() * 12);
-
-    for (let i = 0; i < this.effect.get_max_particles(); i++) {
-      const offset = i * 12;
-
-      // #region --- Generate the particles position based on emitter type -----
-      let x, y;
-      switch (this.emitter.type) {
-        case "point":
-          x = this.emitter.pos[0];
-          y = this.emitter.pos[1];
-          break;
-
-        case "circle":
-          const angle = Math.random() * Math.PI * 2;
-          const radius = Math.sqrt(Math.random()) * (this.emitter.p1 ?? 0);
-          x = this.emitter.pos[0] + Math.cos(angle) * radius;
-          y = this.emitter.pos[1] + Math.sin(angle) * radius;
-          break;
-
-        case "rect":
-          x =
-            this.emitter.pos[0] +
-            (Math.random() - 0.5) * (this.emitter.p1 ?? 1);
-          y =
-            this.emitter.pos[1] +
-            (Math.random() - 0.5) * (this.emitter.p2 ?? 0);
-          break;
-
-        default:
-          x = 0;
-          y = 0;
-      }
-      // #endregion ------------------------------------------------------------
-
-      // #region --- Add to the buffer array -----------------------------------
-      // position (vec2f) — scatter randomly so they don't all spawn at once
-      data[offset + 0] = x; // x
-      data[offset + 1] = y; // y
-
-      // velocity (vec2f)
-      data[offset + 2] = (Math.random() - 0.5) * 400; // vx
-      data[offset + 3] = Math.random() * 300 + 0.2; // vy
-
-      // color (vec4f)
-      data[offset + 4] = Math.random(); // r
-      data[offset + 5] = Math.random(); // g
-      data[offset + 6] = Math.random(); // b
-      data[offset + 7] = 1.0; // a
-
-      data[offset + 8] = 0.0; // seed
-      data[offset + 9] = Math.random(); // life
-      data[offset + 10] = 1.0; // maxLife
-      data[offset + 11] = Math.random() * 8.0 + 4.0; // size (4–12px)
-      // #endregion
-    }
-
-    // Write to the buffer
-    this.ctx.write_buffer("particle_buffer_0", 0, data);
-  }
-
-  /**
-   *
    * Creates an emitter of a given shape for a given canvas.
    *
    * @param emitter_shape the shape of the emitter
    * @param canvas the canvas the emitter will use
    * @returns an emitter for particle drawing
    */
-  private generate_emitter(emitter_config: EmitterConfig): Emitter {
+  private static generate_emitter(emitter_config: EmitterConfig): Emitter {
     return {
       type: emitter_config.emitter_type,
       pos: emitter_config.emitter_pos,
       p1: emitter_config.emitter_p1 ?? 50,
       p2: emitter_config.emitter_p2 ?? 50,
     };
-  }
-
-  /**
-   *
-   * Convert the emitter object to a data format that can be ingested by the WebGPU Uniform Buffer.
-   *
-   * @returns the generated Emitter data ready to be passed into the WebGPU buffer
-   *
-   */
-  private generate_emitter_data(): Float32Array {
-    switch (this.emitter.type) {
-      case "point":
-        return new Float32Array([
-          this.emitter.pos[0], // x
-          this.emitter.pos[1], // y
-          0.0, // Emitter type
-          0.0, // Not used by a point emitter
-          0.0, // Not used by a point emitter
-        ]);
-      case "circle":
-        return new Float32Array([
-          this.emitter.pos[0], // x position
-          this.emitter.pos[1], // y position
-          1.0, // Emitter type
-          this.emitter.p1, // Circle emitter radius
-          0.0, // Not used by a circle emitter
-        ]);
-      case "rect":
-        return new Float32Array([
-          this.emitter.pos[0], // x
-          this.emitter.pos[1], // y
-          2.0, // Emitter type
-          this.emitter.p1, // Emitter width
-          this.emitter.p2, // Emitter height
-        ]);
-      default:
-        return new Float32Array([
-          this.emitter.pos[0], // x
-          this.emitter.pos[1], // y
-          0.0, // Emitter type
-          this.emitter.p1, // Emitter width
-          this.emitter.p2, // Emitter height
-        ]);
-    }
   }
 
   /**
@@ -294,18 +142,23 @@ export class ParticleEngine {
     // #endregion --------------------------------------------------------------
 
     // #region --- Start up if there was no problems ---------------------------
-    const tmp_ctx = await WebGPUContext.init(canvas, options, effect);
+    const tmp_ctx = await WebGPUContext.init(canvas, options);
+    console.log("context device first:", tmp_ctx.device.label);
+    const tmp_emitter = this.generate_emitter(emitter_config);
+    const tmp_renderer = await EffectRendererFactory.initialize(
+      effect,
+      tmp_emitter,
+      tmp_ctx.device,
+      tmp_ctx.get_uniform_buffers(),
+    );
+    console.log("context device second:", tmp_ctx.device.label);
     const result: ParticleEngine = new ParticleEngine(
       canvas,
       tmp_ctx,
+      tmp_emitter,
       effect,
-      emitter_config,
+      tmp_renderer,
     );
-    // #endregion --------------------------------------------------------------
-
-    // #region --- Set initial values ------------------------------------------
-    var particles: Particle[] = effect.seed_particles();
-    result.buffer_particles(particles);
     // #endregion --------------------------------------------------------------
 
     return result;
