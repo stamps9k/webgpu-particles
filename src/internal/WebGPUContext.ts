@@ -6,6 +6,7 @@ import { FireworksEffect } from "../public/effects/FireworksEffect";
 import { ScatterSwirlEffect } from "../public/effects/ScatterSwirlEffect";
 import { BoidsEffect } from "../public/effects/BoidsEffect";
 import { Emitter } from "../public/types/Emitters";
+import { UniformValues } from "./UniformValues";
 
 /** Custom options that the I may want to use */
 export interface WebGPUContextOptions {
@@ -204,89 +205,37 @@ export class WebGPUContext {
    * @param bufferOffset - How much to offset the write command
    * @param data - The data to write to the buffer
    */
-  write_buffer(
-    canvas: HTMLCanvasElement,
-    effect: ParticleEffect,
-    emitter: Emitter,
-  ): void {
-    const now = performance.now();
-    const delta_time = (now - this.last_time) / 1000; // seconds
-    this.last_time = now;
-
+  write_buffer(canvas: HTMLCanvasElement, uniform_values: UniformValues): void {
     // #region --- Update the shader uniforms ----------------------------------
-    const emitter_data = this.generate_emitter_data(emitter);
     const uniform_data = new Float32Array([
-      delta_time,
-      now / 1000,
+      uniform_values.delta_time,
+      uniform_values.time,
       canvas.width,
       canvas.height,
-      emitter_data[0],
-      emitter_data[1],
-      emitter_data[2],
-      emitter_data[3],
-      emitter_data[4],
-      effect.get_shader_params().sp0,
-      effect.get_shader_params().sp1,
-      effect.get_shader_params().sp2,
-      effect.get_shader_params().sp3,
-      effect.get_shader_params().sp4,
-      effect.get_shader_params().sp5,
-      effect.get_shader_params().sp6,
-      effect.get_shader_params().sp7,
-      effect.get_shader_params().sp8,
-      effect.get_shader_params().sp9,
-      effect.get_shader_params().sp10,
+      uniform_values.emitter_pos[0],
+      uniform_values.emitter_pos[1],
+      uniform_values.emitter_type,
+      uniform_values.emitter_p1,
+      uniform_values.emitter_p2,
+      uniform_values.sp0,
+      uniform_values.sp1,
+      uniform_values.sp2,
+      uniform_values.sp3,
+      uniform_values.sp4,
+      uniform_values.sp5,
+      uniform_values.sp6,
+      uniform_values.sp7,
+      uniform_values.sp8,
+      uniform_values.sp9,
+      uniform_values.sp10,
     ]);
+    // #endregion --------------------------------------------------------------
 
     this.device.queue.writeBuffer(
       this.uniform_buffers["uniform_buffer"],
       0,
       uniform_data,
     );
-  }
-
-  /**
-   *
-   * Convert the emitter object to a data format that can be ingested by the WebGPU Uniform Buffer.
-   *
-   * @returns the generated Emitter data ready to be passed into the WebGPU buffer
-   *
-   */
-  private generate_emitter_data(emitter: Emitter): Float32Array {
-    switch (emitter.type) {
-      case "point":
-        return new Float32Array([
-          emitter.pos[0], // x
-          emitter.pos[1], // y
-          0.0, // Emitter type
-          0.0, // Not used by a point emitter
-          0.0, // Not used by a point emitter
-        ]);
-      case "circle":
-        return new Float32Array([
-          emitter.pos[0], // x position
-          emitter.pos[1], // y position
-          1.0, // Emitter type
-          emitter.p1, // Circle emitter radius
-          0.0, // Not used by a circle emitter
-        ]);
-      case "rect":
-        return new Float32Array([
-          emitter.pos[0], // x
-          emitter.pos[1], // y
-          2.0, // Emitter type
-          emitter.p1, // Emitter width
-          emitter.p2, // Emitter height
-        ]);
-      default:
-        return new Float32Array([
-          emitter.pos[0], // x
-          emitter.pos[1], // y
-          0.0, // Emitter type
-          emitter.p1, // Emitter width
-          emitter.p2, // Emitter height
-        ]);
-    }
   }
 
   get_uniform_buffers = (): Record<string, GPUBuffer> => {

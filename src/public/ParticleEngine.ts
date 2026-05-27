@@ -1,12 +1,12 @@
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
-import { ParticleType } from "./enums/ParticleTypes";
 import { Emitter } from "./types/Emitters";
 import { ParticleEffect } from "./effects/ParticleEffect";
-import { Particle } from "./Particle";
 import { BoidsEffect } from "./effects/BoidsEffect";
 import { EmitterConfig } from "./EmitterConfig";
 import { EffectRendererFactory } from "../internal/EffectRenderer/EffectRendererFactory";
 import { EffectRenderer } from "../internal/EffectRenderer/EffectRenderer";
+import { UniformValues } from "../internal/UniformValues";
+import { emit } from "node:cluster";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
@@ -14,8 +14,9 @@ export class ParticleEngine {
   private canvas: HTMLCanvasElement;
   private ctx: WebGPUContext;
   private emitter: Emitter;
-  private effect: ParticleEffect;
+  private uniform_values: UniformValues;
   private renderer: EffectRenderer;
+  private last_time = performance.now();
 
   // #endregion ----------------------------------------------------------------
 
@@ -39,7 +40,7 @@ export class ParticleEngine {
     this.canvas = canvas;
     this.ctx = ctx;
     this.emitter = emitter;
-    this.effect = effect;
+    this.uniform_values = this.generate_uniform_values(canvas, effect, emitter);
     this.renderer = renderer;
   }
 
@@ -60,10 +61,15 @@ export class ParticleEngine {
    *
    */
   public animate_particles = () => {
-    this.ctx.write_buffer(this.canvas, this.effect, this.emitter);
+    const now = performance.now() / 1000;
+    this.uniform_values.delta_time = now - this.last_time;
+    this.uniform_values.time = now; // seconds
+    this.last_time = now;
+
+    this.ctx.write_buffer(this.canvas, this.uniform_values);
 
     const encoder = this.ctx.begin_frame();
-    this.renderer.encode_compute_pass(encoder, this.effect);
+    this.renderer.encode_compute_pass(encoder);
     this.renderer.encode_render_pass(
       encoder,
       this.ctx.get_current_color_view(),
@@ -71,9 +77,6 @@ export class ParticleEngine {
 
     this.ctx.end_frame(encoder);
     requestAnimationFrame(this.animate_particles);
-    if (this.effect instanceof BoidsEffect) {
-      this.effect.increment_frame_index();
-    }
   };
 
   /**
@@ -115,6 +118,52 @@ export class ParticleEngine {
       p1: emitter_config.emitter_p1 ?? 50,
       p2: emitter_config.emitter_p2 ?? 50,
     };
+  }
+
+  private generate_uniform_values(
+    canvas: HTMLCanvasElement,
+    effect: ParticleEffect,
+    emitter: Emitter,
+  ): UniformValues {
+    let emitter_type = 0;
+    switch (emitter.type) {
+      case "point":
+        emitter_type = 0;
+        break;
+      case "circle":
+        emitter_type = 1;
+        break;
+      case "rectangle":
+        emitter_type = 2;
+        break;
+      default:
+        emitter_type = 0;
+        break;
+    }
+
+    const now = performance.now() / 1000; //seconds;
+    const result: UniformValues = {
+      delta_time: now - this.last_time,
+      time: now,
+      canvas_size: [canvas.width, canvas.height],
+      emitter_pos: emitter.pos,
+      emitter_type: emitter_type,
+      emitter_p1: emitter.p1,
+      emitter_p2: emitter.p2,
+      sp0: effect.get_shader_params().sp0,
+      sp1: effect.get_shader_params().sp1,
+      sp2: effect.get_shader_params().sp2,
+      sp3: effect.get_shader_params().sp3,
+      sp4: effect.get_shader_params().sp4,
+      sp5: effect.get_shader_params().sp5,
+      sp6: effect.get_shader_params().sp6,
+      sp7: effect.get_shader_params().sp7,
+      sp8: effect.get_shader_params().sp8,
+      sp9: effect.get_shader_params().sp9,
+      sp10: effect.get_shader_params().sp10,
+    };
+    this.last_time = now;
+    return result;
   }
 
   /**

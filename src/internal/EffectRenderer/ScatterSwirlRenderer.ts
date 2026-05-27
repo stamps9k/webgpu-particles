@@ -9,13 +9,13 @@ export class ScatterSwirlRenderer implements EffectRenderer {
   private buffers: Record<string, GPUBuffer> = {};
   private bindgroups: Record<string, GPUBindGroup> = {};
   private shaders: Record<string, GPUShaderModule> = {};
-  private effect: ScatterSwirlEffect;
+  private max_particles: number;
   private particle_stride = 32; // standard particle size
   private workgroup_size = 64; // standard workgroup size
 
   constructor(effect: ScatterSwirlEffect) {
-    this.effect = effect;
-    this.effect.seed_particles();
+    this.max_particles = effect.get_max_particles();
+    effect.seed_particles();
   }
 
   static initialize(effect: ScatterSwirlEffect) {
@@ -53,7 +53,7 @@ export class ScatterSwirlRenderer implements EffectRenderer {
     let buffers: Record<string, GPUBuffer> = {};
     buffers["particle_buffer_0"] = device.createBuffer({
       label: "particles",
-      size: this.effect.get_max_particles() * this.particle_stride,
+      size: this.max_particles * this.particle_stride,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     this.buffers = buffers;
@@ -127,7 +127,7 @@ export class ScatterSwirlRenderer implements EffectRenderer {
 
   write_particles_to_buffer(device: GPUDevice, emitter: Emitter) {
     let data_array = new Float32Array(
-      this.effect.get_max_particles() * (this.particle_stride / 4),
+      this.max_particles * (this.particle_stride / 4),
     );
 
     device.queue.writeBuffer(this.buffers["particle_buffer_0"], 0, data_array);
@@ -142,7 +142,7 @@ export class ScatterSwirlRenderer implements EffectRenderer {
     compute.setPipeline(this.compute_pipelines["compute_pipeline"]);
     compute.setBindGroup(0, this.bindgroups["compute_bind_group"]);
     compute.dispatchWorkgroups(
-      Math.ceil(this.effect.get_max_particles() / this.workgroup_size),
+      Math.ceil(this.max_particles / this.workgroup_size),
     );
     compute.end();
   }
@@ -160,7 +160,7 @@ export class ScatterSwirlRenderer implements EffectRenderer {
     });
     render.setPipeline(this.render_pipelines["render_pipeline"]);
     render.setBindGroup(0, this.bindgroups["render_bind_group"]);
-    render.draw(6, this.effect.get_max_particles()); // 6 vertices × N instances
+    render.draw(6, this.max_particles); // 6 vertices × N instances
     render.end();
   }
 

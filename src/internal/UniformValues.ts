@@ -1,0 +1,20 @@
+export type UniformValues = {
+  delta_time: number;
+  time: number;
+  canvas_size: [number, number];
+  emitter_pos: [number, number];
+  emitter_type: number;
+  emitter_p1: number;
+  emitter_p2: number;
+  sp0: number;
+  sp1: number;
+  sp2: number;
+  sp3: number;
+  sp4: number;
+  sp5: number;
+  sp6: number;
+  sp7: number;
+  sp8: number;
+  sp9: number;
+  sp10: number;
+};

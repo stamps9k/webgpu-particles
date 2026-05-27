@@ -9,13 +9,14 @@ export class BoidsRenderer implements EffectRenderer {
   private buffers: Record<string, GPUBuffer> = {};
   private bindgroups: Record<string, GPUBindGroup> = {};
   private shaders: Record<string, GPUShaderModule> = {};
-  private effect: BoidsEffect;
+  private frame_index = 0;
+  private max_particles;
   private particle_stride = 32; // standard particle size
   private workgroup_size = 64; // standard workgroup size
 
   constructor(effect: BoidsEffect) {
-    this.effect = effect;
-    this.effect.seed_particles();
+    this.max_particles = effect.get_max_particles();
+    effect.seed_particles();
   }
 
   static initialize(effect: BoidsEffect) {
@@ -52,12 +53,12 @@ export class BoidsRenderer implements EffectRenderer {
     let buffers: Record<string, GPUBuffer> = {};
     buffers["particle_buffer_0"] = device.createBuffer({
       label: "particles-0",
-      size: this.effect.get_max_particles() * this.particle_stride,
+      size: this.max_particles * this.particle_stride,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     buffers["particle_buffer_1"] = device.createBuffer({
       label: "particles-1",
-      size: this.effect.get_max_particles() * this.particle_stride,
+      size: this.max_particles * this.particle_stride,
       usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST,
     });
     this.buffers = buffers;
@@ -140,10 +141,10 @@ export class BoidsRenderer implements EffectRenderer {
 
   write_particles_to_buffer(device: GPUDevice, emitter: Emitter) {
     let data = new Float32Array(
-      this.effect.get_max_particles() * (this.particle_stride / 4),
+      this.max_particles * (this.particle_stride / 4),
     );
 
-    for (let i = 0; i < this.effect.get_max_particles(); i++) {
+    for (let i = 0; i < this.max_particles; i++) {
       const offset = i * 12;
 
       // #region --- Generate the particles position based on emitter type -----
@@ -201,15 +202,16 @@ export class BoidsRenderer implements EffectRenderer {
     /* release GPU resources */
   }
 
-  encode_compute_pass(encoder: GPUCommandEncoder, effect: BoidsEffect) {
+  encode_compute_pass(encoder: GPUCommandEncoder) {
     let compute = encoder.beginComputePass();
-    const bind_group = "compute_bind_group_" + (effect.get_frame_index() % 2);
+    const bind_group = "compute_bind_group_" + (this.frame_index % 2);
     compute.setPipeline(this.compute_pipelines["compute_pipeline"]);
     compute.setBindGroup(0, this.bindgroups[bind_group]);
     compute.dispatchWorkgroups(
-      Math.ceil(effect.get_max_particles() / this.workgroup_size),
+      Math.ceil(this.max_particles / this.workgroup_size),
     );
     compute.end();
+    this.frame_index++;
   }
 
   encode_render_pass(encoder: GPUCommandEncoder, view: GPUTextureView) {
@@ -225,7 +227,7 @@ export class BoidsRenderer implements EffectRenderer {
     });
     render.setPipeline(this.render_pipelines["render_pipeline"]);
     render.setBindGroup(0, this.bindgroups["render_bind_group_0"]);
-    render.draw(6, this.effect.get_max_particles()); // 6 vertices × N instances
+    render.draw(6, this.max_particles); // 6 vertices × N instances
     render.end();
   }
 

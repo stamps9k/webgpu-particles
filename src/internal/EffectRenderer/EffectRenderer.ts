@@ -14,7 +14,7 @@ export interface EffectRenderer {
   ): void;
   write_particles_to_buffer(device: GPUDevice, emitter: Emitter): void;
 
-  encode_compute_pass(encoder: GPUCommandEncoder, effect: ParticleEffect): void;
+  encode_compute_pass(encoder: GPUCommandEncoder): void;
 
   encode_render_pass(encoder: GPUCommandEncoder, view: GPUTextureView): void;
 }
