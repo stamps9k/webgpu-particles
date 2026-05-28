@@ -1,5 +1,4 @@
-import { ParticleEffect } from "../..";
-import { Emitter } from "../../public/types/Emitters";
+import { EmitterConfig } from "../..";
 
 export interface EffectRenderer {
   destroy(): void;
@@ -12,7 +11,10 @@ export interface EffectRenderer {
     device: GPUDevice,
     uniform_buffers: Record<string, GPUBuffer>,
   ): void;
-  write_particles_to_buffer(device: GPUDevice, emitter: Emitter): void;
+  write_particles_to_buffer(
+    device: GPUDevice,
+    emitter_config: EmitterConfig,
+  ): void;
 
   encode_compute_pass(encoder: GPUCommandEncoder): void;
 

@@ -1,12 +1,9 @@
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
-import { Emitter } from "./types/Emitters";
 import { ParticleEffect } from "./effects/ParticleEffect";
-import { BoidsEffect } from "./effects/BoidsEffect";
 import { EmitterConfig } from "./EmitterConfig";
 import { EffectRendererFactory } from "../internal/EffectRenderer/EffectRendererFactory";
 import { EffectRenderer } from "../internal/EffectRenderer/EffectRenderer";
 import { UniformValues } from "../internal/UniformValues";
-import { emit } from "node:cluster";
 
 /** Manages the WebGPU particle simulation lifecycle */
 export class ParticleEngine {
@@ -33,13 +30,17 @@ export class ParticleEngine {
   private constructor(
     canvas: HTMLCanvasElement,
     ctx: WebGPUContext,
-    emitter: Emitter,
+    emitter_config: EmitterConfig,
     effect: ParticleEffect,
     renderer: EffectRenderer,
   ) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.uniform_values = this.generate_uniform_values(canvas, effect, emitter);
+    this.uniform_values = this.generate_uniform_values(
+      canvas,
+      effect,
+      emitter_config,
+    );
     this.renderer = renderer;
   }
 
@@ -110,30 +111,13 @@ export class ParticleEngine {
     this.canvas = canvas;
   }
 
-  /**
-   *
-   * Creates an emitter of a given shape for a given canvas.
-   *
-   * @param emitter_shape the shape of the emitter
-   * @param canvas the canvas the emitter will use
-   * @returns an emitter for particle drawing
-   */
-  private static generate_emitter(emitter_config: EmitterConfig): Emitter {
-    return {
-      type: emitter_config.emitter_type,
-      pos: emitter_config.emitter_pos,
-      p1: emitter_config.emitter_p1 ?? 50,
-      p2: emitter_config.emitter_p2 ?? 50,
-    };
-  }
-
   private generate_uniform_values(
     canvas: HTMLCanvasElement,
     effect: ParticleEffect,
-    emitter: Emitter,
+    emitter_config: EmitterConfig,
   ): UniformValues {
     let emitter_type = 0;
-    switch (emitter.type) {
+    switch (emitter_config.type) {
       case "point":
         emitter_type = 0;
         break;
@@ -153,10 +137,10 @@ export class ParticleEngine {
       delta_time: now - this.last_time,
       time: now,
       canvas_size: [canvas.width, canvas.height],
-      emitter_pos: emitter.pos,
+      emitter_pos: emitter_config.pos,
       emitter_type: emitter_type,
-      emitter_p1: emitter.p1,
-      emitter_p2: emitter.p2,
+      emitter_p1: emitter_config.p1 ?? 0,
+      emitter_p2: emitter_config.p2 ?? 0,
       sp0: effect.get_shader_params().sp0,
       sp1: effect.get_shader_params().sp1,
       sp2: effect.get_shader_params().sp2,
@@ -200,10 +184,9 @@ export class ParticleEngine {
     // #region --- Start up if there was no problems ---------------------------
     const tmp_ctx = await WebGPUContext.init(canvas, options);
     console.log("context device first:", tmp_ctx.device.label);
-    const tmp_emitter = this.generate_emitter(emitter_config);
     const tmp_renderer = await EffectRendererFactory.initialize(
       effect,
-      tmp_emitter,
+      emitter_config,
       tmp_ctx.device,
       tmp_ctx.get_uniform_buffers(),
     );
@@ -211,7 +194,7 @@ export class ParticleEngine {
     const result: ParticleEngine = new ParticleEngine(
       canvas,
       tmp_ctx,
-      tmp_emitter,
+      emitter_config,
       effect,
       tmp_renderer,
     );

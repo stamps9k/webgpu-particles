@@ -1,11 +1,3 @@
-import { shader_registry } from "./shaders";
-import { ParticleEffect } from "../public/effects/ParticleEffect";
-import { ScatterFadeEffect } from "../public/effects/ScatterFadeEffect";
-import { ShaderParams } from "../public/ShaderParams";
-import { FireworksEffect } from "../public/effects/FireworksEffect";
-import { ScatterSwirlEffect } from "../public/effects/ScatterSwirlEffect";
-import { BoidsEffect } from "../public/effects/BoidsEffect";
-import { Emitter } from "../public/types/Emitters";
 import { UniformValues } from "./UniformValues";
 
 /** Custom options that the I may want to use */

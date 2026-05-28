@@ -10,12 +10,12 @@ import { ScatterFadeRenderer } from "./ScatterFadeRenderer";
 import { FireworksRenderer } from "./FireworksRenderer";
 import { BoidsRenderer } from "./BoidsRenderer";
 import { ScatterSwirlRenderer } from "./ScatterSwirlRenderer";
-import { Emitter } from "../../public/types/Emitters";
+import { EmitterConfig } from "../../public/EmitterConfig";
 
 export class EffectRendererFactory {
   static async initialize(
     effect: ParticleEffect,
-    emitter: Emitter,
+    emitter_config: EmitterConfig,
     device: GPUDevice,
     uniform_buffers: Record<string, GPUBuffer>,
   ): Promise<EffectRenderer> {
@@ -45,7 +45,7 @@ export class EffectRendererFactory {
     result.create_compute_pipelines(device);
     result.create_render_pipelines(device);
     result.create_bindgroups(device, uniform_buffers);
-    result.write_particles_to_buffer(device, emitter);
+    result.write_particles_to_buffer(device, emitter_config);
     return result;
   }
 }

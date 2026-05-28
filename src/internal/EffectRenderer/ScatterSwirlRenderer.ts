@@ -1,7 +1,7 @@
 import { EffectRenderer } from "./EffectRenderer";
 import { ScatterSwirlEffect } from "../../public/effects/ScatterSwirlEffect";
 import { shader_registry } from "../shaders";
-import { Emitter } from "../../public/types/Emitters";
+import { EmitterConfig } from "../../public/EmitterConfig";
 
 export class ScatterSwirlRenderer implements EffectRenderer {
   private compute_pipelines: Record<string, GPUComputePipeline> = {};
@@ -125,7 +125,7 @@ export class ScatterSwirlRenderer implements EffectRenderer {
     });
   }
 
-  write_particles_to_buffer(device: GPUDevice, emitter: Emitter) {
+  write_particles_to_buffer(device: GPUDevice, emitter_config: EmitterConfig) {
     let data_array = new Float32Array(
       this.max_particles * (this.particle_stride / 4),
     );

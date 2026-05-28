@@ -1,7 +1,7 @@
 import { EffectRenderer } from "./EffectRenderer";
 import { BoidsEffect } from "../../public/effects/BoidsEffect";
 import { shader_registry } from "../shaders";
-import { Emitter } from "../../public/types/Emitters";
+import { EmitterConfig } from "../../public/EmitterConfig";
 
 export class BoidsRenderer implements EffectRenderer {
   private compute_pipelines: Record<string, GPUComputePipeline> = {};
@@ -139,7 +139,7 @@ export class BoidsRenderer implements EffectRenderer {
     });
   }
 
-  write_particles_to_buffer(device: GPUDevice, emitter: Emitter) {
+  write_particles_to_buffer(device: GPUDevice, emitter_config: EmitterConfig) {
     let data = new Float32Array(
       this.max_particles * (this.particle_stride / 4),
     );
@@ -149,22 +149,26 @@ export class BoidsRenderer implements EffectRenderer {
 
       // #region --- Generate the particles position based on emitter type -----
       let x, y;
-      switch (emitter.type) {
+      switch (emitter_config.type) {
         case "point":
-          x = emitter.pos[0];
-          y = emitter.pos[1];
+          x = emitter_config.pos[0];
+          y = emitter_config.pos[1];
           break;
 
         case "circle":
           const angle = Math.random() * Math.PI * 2;
-          const radius = Math.sqrt(Math.random()) * (emitter.p1 ?? 0);
-          x = emitter.pos[0] + Math.cos(angle) * radius;
-          y = emitter.pos[1] + Math.sin(angle) * radius;
+          const radius = Math.sqrt(Math.random()) * (emitter_config.p1 ?? 0);
+          x = emitter_config.pos[0] + Math.cos(angle) * radius;
+          y = emitter_config.pos[1] + Math.sin(angle) * radius;
           break;
 
         case "rect":
-          x = emitter.pos[0] + (Math.random() - 0.5) * (emitter.p1 ?? 1);
-          y = emitter.pos[1] + (Math.random() - 0.5) * (emitter.p2 ?? 0);
+          x =
+            emitter_config.pos[0] +
+            (Math.random() - 0.5) * (emitter_config.p1 ?? 1);
+          y =
+            emitter_config.pos[1] +
+            (Math.random() - 0.5) * (emitter_config.p2 ?? 0);
           break;
 
         default:
