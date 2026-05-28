@@ -13,10 +13,10 @@ export class ParticleEngine {
   // #region --- The class properties ------------------------------------------
   private canvas: HTMLCanvasElement;
   private ctx: WebGPUContext;
-  private emitter: Emitter;
   private uniform_values: UniformValues;
   private renderer: EffectRenderer;
   private last_time = performance.now();
+  private paused = false;
 
   // #endregion ----------------------------------------------------------------
 
@@ -39,7 +39,6 @@ export class ParticleEngine {
   ) {
     this.canvas = canvas;
     this.ctx = ctx;
-    this.emitter = emitter;
     this.uniform_values = this.generate_uniform_values(canvas, effect, emitter);
     this.renderer = renderer;
   }
@@ -53,6 +52,14 @@ export class ParticleEngine {
     requestAnimationFrame(this.animate_particles);
   }
 
+  public pause() {
+    this.paused = true;
+  }
+
+  public resume() {
+    this.paused = false;
+  }
+
   /**
    *
    * Handle each frame of animation tick.
@@ -62,7 +69,7 @@ export class ParticleEngine {
    */
   public animate_particles = () => {
     const now = performance.now() / 1000;
-    this.uniform_values.delta_time = now - this.last_time;
+    this.uniform_values.delta_time = this.paused ? 0 : now - this.last_time;
     this.uniform_values.time = now; // seconds
     this.last_time = now;
 
