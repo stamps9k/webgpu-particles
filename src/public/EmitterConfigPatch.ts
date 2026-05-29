@@ -21,6 +21,17 @@ export class EmitterConfigPatch {
   // #endregion ---------------------------------------------------------------
 
   /**
+   * An empty class constructor. Assigns all patch values to null
+   */
+  public constructor();
+  public constructor(
+    shape: EmitterShape | null,
+    pos: [number | null, number | null] | null,
+    p1: number | null,
+    p2: number | null,
+  );
+
+  /**
    * The class constructor. Takes the user definable properties and returns an instance of the class
    *
    * @param emitter_type - the type of the emitter
@@ -29,10 +40,10 @@ export class EmitterConfigPatch {
    * @param emitter_p2 - Custom variable 2 for the emitter. Purpose depends on the shape.
    */
   public constructor(
-    shape: EmitterShape | null,
-    pos: [number | null, number | null] | null,
-    p1: number | null,
-    p2: number | null,
+    shape: EmitterShape | null = null,
+    pos: [number | null, number | null] | null = null,
+    p1: number | null = null,
+    p2: number | null = null,
   ) {
     this.shape = shape;
     this.pos = pos;
