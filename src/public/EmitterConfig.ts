@@ -1,15 +1,15 @@
+import { EmitterConfigPatch } from "./EmitterConfigPatch";
 import { ValidationRule, validate } from "./types/ValidationRule";
 
 /**
  * A class representing the values needed to create an emitter.
  */
-export class EmitterConfig {
+export class EmitterConfig extends EmitterConfigPatch {
   // #region --- The class properties -----------------------------------------
-  public type: string;
-  public pos: [number, number];
-  public p1: number | null;
-  public p2: number | null;
-  private static rules: ValidationRule<EmitterConfig>[] = [
+  //
+  public override type: string;
+  public override pos: [number, number];
+  protected static override rules: ValidationRule<EmitterConfigPatch>[] = [
     {
       check: (e) =>
         e.type !== "Rect" && e.type !== "Circle" && e.type !== "Point",
@@ -32,10 +32,9 @@ export class EmitterConfig {
     p1: number | null,
     p2: number | null,
   ) {
+    super(type, pos, p1, p2);
     this.type = type;
     this.pos = pos;
-    this.p1 = p1;
-    this.p2 = p2;
   }
 
   /**
