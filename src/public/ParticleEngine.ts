@@ -1,6 +1,7 @@
 import { WebGPUContext, WebGPUContextOptions } from "../internal/WebGPUContext";
 import { ParticleEffect } from "./effects/ParticleEffect";
 import { EmitterConfig } from "./EmitterConfig";
+import { EmitterConfigPatch } from "./EmitterConfigPatch";
 import { EffectRendererFactory } from "../internal/EffectRenderer/EffectRendererFactory";
 import { EffectRenderer } from "../internal/EffectRenderer/EffectRenderer";
 import { UniformValues } from "../internal/UniformValues";
@@ -59,6 +60,43 @@ export class ParticleEngine {
 
   public resume() {
     this.paused = false;
+  }
+
+  /**
+   * Update the UniformValues with new emitter values
+   *
+   * @param emitter_config - The new emitter values to be used
+   *
+   */
+  public update_emitter(emitter_config: EmitterConfigPatch) {
+    if (emitter_config.type !== null) {
+      let emitter_type = 0;
+      switch (emitter_config.type) {
+        case "point":
+          emitter_type = 0;
+          break;
+        case "circle":
+          emitter_type = 1;
+          break;
+        case "rectangle":
+          emitter_type = 2;
+          break;
+        default:
+          emitter_type = 0;
+          break;
+      }
+    }
+
+    if (emitter_config.pos !== null) {
+      this.uniform_values.emitter_pos[0] =
+        emitter_config.pos[0] ?? this.uniform_values.emitter_pos[0];
+      this.uniform_values.emitter_pos[1] =
+        emitter_config.pos[1] ?? this.uniform_values.emitter_pos[1];
+    }
+    this.uniform_values.emitter_p1 =
+      emitter_config.p1 ?? this.uniform_values.emitter_p1;
+    this.uniform_values.emitter_p2 =
+      emitter_config.p2 ?? this.uniform_values.emitter_p1;
   }
 
   /**
