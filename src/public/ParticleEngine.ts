@@ -69,24 +69,10 @@ export class ParticleEngine {
    *
    */
   public update_emitter(emitter_config: EmitterConfigPatch) {
-    if (emitter_config.type !== null) {
-      let emitter_type = 0;
-      switch (emitter_config.type) {
-        case "point":
-          emitter_type = 0;
-          break;
-        case "circle":
-          emitter_type = 1;
-          break;
-        case "rectangle":
-          emitter_type = 2;
-          break;
-        default:
-          emitter_type = 0;
-          break;
-      }
+    if (emitter_config.shape !== null) {
+      this.uniform_values.emitter_shape =
+        emitter_config.shape ?? this.uniform_values.emitter_shape;
     }
-
     if (emitter_config.pos !== null) {
       this.uniform_values.emitter_pos[0] =
         emitter_config.pos[0] ?? this.uniform_values.emitter_pos[0];
@@ -154,29 +140,13 @@ export class ParticleEngine {
     effect: ParticleEffect,
     emitter_config: EmitterConfig,
   ): UniformValues {
-    let emitter_type = 0;
-    switch (emitter_config.type) {
-      case "point":
-        emitter_type = 0;
-        break;
-      case "circle":
-        emitter_type = 1;
-        break;
-      case "rectangle":
-        emitter_type = 2;
-        break;
-      default:
-        emitter_type = 0;
-        break;
-    }
-
     const now = performance.now() / 1000; //seconds;
     const result: UniformValues = {
       delta_time: now - this.last_time,
       time: now,
       canvas_size: [canvas.width, canvas.height],
       emitter_pos: emitter_config.pos,
-      emitter_type: emitter_type,
+      emitter_shape: emitter_config.shape,
       emitter_p1: emitter_config.p1 ?? 0,
       emitter_p2: emitter_config.p2 ?? 0,
       sp0: effect.get_shader_params().sp0,

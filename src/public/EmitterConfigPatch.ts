@@ -1,18 +1,19 @@
 import { ValidationRule, validate } from "./types/ValidationRule";
 import { EmitterConfig } from "./EmitterConfig";
+import { EmitterShape } from "./enums/EmitterShapes";
 
 /**
  * A class representing the values needed to create an emitter.
  */
 export class EmitterConfigPatch {
   // #region --- The class properties -----------------------------------------
-  public type: string | null;
+  public shape: EmitterShape | null;
   public pos: [number | null, number | null] | null;
   public p1: number | null;
   public p2: number | null;
   protected static rules: ValidationRule<EmitterConfigPatch>[] = [
     {
-      check: (e) => false,
+      check: (e) => true,
       message:
         "This is a dummy validation rule that should never trigger. TODO replace with proper validation check",
     },
@@ -28,12 +29,12 @@ export class EmitterConfigPatch {
    * @param emitter_p2 - Custom variable 2 for the emitter. Purpose depends on the shape.
    */
   public constructor(
-    type: string | null,
+    shape: EmitterShape | null,
     pos: [number | null, number | null] | null,
     p1: number | null,
     p2: number | null,
   ) {
-    this.type = type;
+    this.shape = shape;
     this.pos = pos;
     this.p1 = p1;
     this.p2 = p2;

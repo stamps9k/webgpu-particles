@@ -2,6 +2,7 @@ import { EffectRenderer } from "./EffectRenderer";
 import { BoidsEffect } from "../../public/effects/BoidsEffect";
 import { shader_registry } from "../shaders";
 import { EmitterConfig } from "../../public/EmitterConfig";
+import { EmitterShape } from "../../public/enums/EmitterShapes";
 
 export class BoidsRenderer implements EffectRenderer {
   private compute_pipelines: Record<string, GPUComputePipeline> = {};
@@ -149,20 +150,20 @@ export class BoidsRenderer implements EffectRenderer {
 
       // #region --- Generate the particles position based on emitter type -----
       let x, y;
-      switch (emitter_config.type) {
-        case "point":
+      switch (emitter_config.shape) {
+        case EmitterShape.Point:
           x = emitter_config.pos[0];
           y = emitter_config.pos[1];
           break;
 
-        case "circle":
+        case EmitterShape.Circle:
           const angle = Math.random() * Math.PI * 2;
           const radius = Math.sqrt(Math.random()) * (emitter_config.p1 ?? 0);
           x = emitter_config.pos[0] + Math.cos(angle) * radius;
           y = emitter_config.pos[1] + Math.sin(angle) * radius;
           break;
 
-        case "rect":
+        case EmitterShape.Rectangle:
           x =
             emitter_config.pos[0] +
             (Math.random() - 0.5) * (emitter_config.p1 ?? 1);

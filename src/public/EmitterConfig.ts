@@ -1,4 +1,5 @@
 import { EmitterConfigPatch } from "./EmitterConfigPatch";
+import { EmitterShape } from "./enums/EmitterShapes";
 import { ValidationRule, validate } from "./types/ValidationRule";
 
 /**
@@ -7,13 +8,13 @@ import { ValidationRule, validate } from "./types/ValidationRule";
 export class EmitterConfig extends EmitterConfigPatch {
   // #region --- The class properties -----------------------------------------
   //
-  public override type: string;
+  public override shape: EmitterShape;
   public override pos: [number, number];
   protected static override rules: ValidationRule<EmitterConfigPatch>[] = [
     {
-      check: (e) =>
-        e.type !== "Rect" && e.type !== "Circle" && e.type !== "Point",
-      message: "Emitter type must be Rectangle, Circle or Point",
+      check: (e) => true,
+      message:
+        "This is a dummy validation rule that should never trigger. TODO replace with proper validation check",
     },
   ];
   // #endregion ---------------------------------------------------------------
@@ -27,13 +28,13 @@ export class EmitterConfig extends EmitterConfigPatch {
    * @param emitter_p2 - Custom variable 2 for the emitter. Purpose depends on the shape.
    */
   public constructor(
-    type: string,
+    shape: EmitterShape,
     pos: [number, number],
     p1: number | null,
     p2: number | null,
   ) {
-    super(type, pos, p1, p2);
-    this.type = type;
+    super(shape, pos, p1, p2);
+    this.shape = shape;
     this.pos = pos;
   }
 

@@ -206,7 +206,7 @@ export class WebGPUContext {
       canvas.height,
       uniform_values.emitter_pos[0],
       uniform_values.emitter_pos[1],
-      uniform_values.emitter_type,
+      uniform_values.emitter_shape,
       uniform_values.emitter_p1,
       uniform_values.emitter_p2,
       uniform_values.sp0,

@@ -3,7 +3,7 @@ export type UniformValues = {
   time: number;
   canvas_size: [number, number];
   emitter_pos: [number, number];
-  emitter_type: number;
+  emitter_shape: number;
   emitter_p1: number;
   emitter_p2: number;
   sp0: number;
