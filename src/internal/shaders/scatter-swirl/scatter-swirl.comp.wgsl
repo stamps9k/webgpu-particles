@@ -53,9 +53,9 @@ fn respawn(i: u32, seed: f32) -> Particle {
 	p.velocity = vec2f(0.0);
 	p.seed     = rand_f32(pcg((i ^ s) + 200000u));  // update seed for next respawn
 	p.life     = 1.0;
-	p.maxLife  = rand_f32(pcg((i ^ s) + 300000u)) * 2.0 + 1.0;
+	p.maxLife  = rand_f32(pcg((i ^ s) + 300000u)) * 2.0 + 5.0;
 	p.color    = vec4f(1.0);
-	p.size     = 6.0;
+	p.size     = 20.0;
 	return p;
 }
 
