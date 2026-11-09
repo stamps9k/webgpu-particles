@@ -29,12 +29,13 @@
   },
   "scripts": {
     "test": "vitest",
-    "build": "tsup && tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist && node -e \"const p=require('./package.json');for(const k of ['scripts','devDependencies','lint-staged'])delete p[k];require('fs').writeFileSync('dist/package.json',JSON.stringify(p,null,2)+'\\n')\"",
+    "build": "tsup && tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist && node -e \"const p=require('./package.json');for(const k of ['scripts','devDependencies','lint-staged','overrides'])delete p[k];require('fs').writeFileSync('dist/package.json',JSON.stringify(p,null,2)+'\\n')\"",
     "dev": "concurrently \"tsup --watch\" \"tsc --project tsconfig.build.json --emitDeclarationOnly --outDir dist --watch\"",
     "prepare": "husky",
     "lint": "eslint .",
     "format:check": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "audit:ci": "npx --yes audit-ci@7.1.0 --config audit-ci.jsonc"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
@@ -47,7 +48,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "prettier": "^3.8.3",
-    "tsup": "^8.5.1",
+    "tsup": "^9.0.0",
     "typescript": "^6.0.2",
     "vitest": "^4.1.4"
   },
@@ -56,5 +57,8 @@
       "eslint --fix",
       "prettier --write"
     ]
+  },
+  "overrides": {
+    "minimatch@>=7.0.0 <11.0.1": "^11.0.5"
   }
 }
