@@ -37,24 +37,33 @@ npm install github:stamps9k/webgpu-particles-dist
 ## Usage
 
 ```ts
-import { ParticleSystem } from 'webgpu-particles';
+import {
+  init,
+  ScatterFadeEffect,
+  EmitterConfig,
+  EmitterShape,
+} from "webgpu-particles";
 
-const canvas = document.querySelector('canvas') as HTMLCanvasElement;
+const canvas = document.querySelector("canvas") as HTMLCanvasElement;
 
-const system = await ParticleSystem.create(canvas, {
-  effect: 'scatter-fade',
-  emitter: {
-    type: 'point',
-    position: [canvas.width / 2, canvas.height / 2],
-  },
-});
+const engine = await init(
+  canvas,
+  new ScatterFadeEffect(10000),
+  new EmitterConfig(
+    EmitterShape.Point,
+    [canvas.width / 2, canvas.height / 2],
+    null,
+    null,
+  ),
+);
 
 // Start the render loop
-system.animate_particles();
+engine.start();
 
 // Later
-system.stop(); -- TODO
-system.destroy();  -- TODO
+engine.pause();
+engine.resume();
+// TODO: stop() and destroy()
 ```
 
 > See the [demo app](https://github.com/stamps9k/webgpu-particles-demo) for full working examples of every effect.
@@ -63,11 +72,11 @@ system.destroy();  -- TODO
 
 ## Effects
 
-| Effect | Description |
-|---|---|
-| `scatter-fade` | Particles emitted from a point with gravity, fading out over their lifetime |
-| `fireworks` | Two-phase effect: rockets launch upward, then burst into radial sparks with motion-trail stretching |
-| `vortex-fade` | Particles spiral inward/outward around a central attractor |
+| Effect         | Description                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------- |
+| `scatter-fade` | Particles emitted from a point with gravity, fading out over their lifetime                         |
+| `fireworks`    | Two-phase effect: rockets launch upward, then burst into radial sparks with motion-trail stretching |
+| `vortex-fade`  | Particles spiral inward/outward around a central attractor                                          |
 
 ---
 
@@ -92,16 +101,16 @@ Each effect exposes up to five generic shader parameter slots (`sp0`–`sp4`) fo
 
 The uniforms layout passed to every shader is:
 
-| Field | Type | Description |
-|---|---|---|
-| `deltaTime` | `f32` | Frame delta in seconds |
-| `time` | `f32` | Total elapsed time in seconds |
-| `canvasSize` | `vec2f` | Canvas dimensions in pixels |
-| `emitterPos` | `vec2f` | Emitter origin in pixel space |
-| `emitterType` | `f32` | Discriminant for emitter shape |
-| `emitterP1` | `f32` | Emitter shape parameter 1 |
-| `emitterP2` | `f32` | Emitter shape parameter 2 |
-| `sp0`–`sp4` | `f32` | Per-effect shader parameters |
+| Field         | Type    | Description                    |
+| ------------- | ------- | ------------------------------ |
+| `deltaTime`   | `f32`   | Frame delta in seconds         |
+| `time`        | `f32`   | Total elapsed time in seconds  |
+| `canvasSize`  | `vec2f` | Canvas dimensions in pixels    |
+| `emitterPos`  | `vec2f` | Emitter origin in pixel space  |
+| `emitterType` | `f32`   | Discriminant for emitter shape |
+| `emitterP1`   | `f32`   | Emitter shape parameter 1      |
+| `emitterP2`   | `f32`   | Emitter shape parameter 2      |
+| `sp0`–`sp4`   | `f32`   | Per-effect shader parameters   |
 
 ---
 
@@ -149,7 +158,7 @@ webgpu-particles/
 ├── src/
 │   ├── internal/
 │   │   └── shaders/  # WGSL shader source
-│   ├── public/       
+│   ├── public/
 │   │   ├── effects/  # Class definitions for effects
 │   │   ├── enums/    # Public enums
 │   │   └── types/    # Public types
@@ -175,11 +184,11 @@ npx tsc --noEmit
 
 ## Browser Compatibility
 
-| Browser | Support |
-|---|---|
-| Chrome / Edge 113+ | ✅ Full support |
-| Firefox | 🚧 Experimental (flag required) |
-| Safari | 🚧 In progress (WebGPU behind flag on macOS 14+) |
+| Browser            | Support                                          |
+| ------------------ | ------------------------------------------------ |
+| Chrome / Edge 113+ | ✅ Full support                                  |
+| Firefox            | 🚧 Experimental (flag required)                  |
+| Safari             | 🚧 In progress (WebGPU behind flag on macOS 14+) |
 
 ---
 
