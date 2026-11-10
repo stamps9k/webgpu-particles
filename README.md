@@ -9,7 +9,7 @@ A TypeScript library of GPU-accelerated particle effects built on the [WebGPU AP
 ## Features
 
 - 🚀 **WebGPU-native** — GPU compute shaders for particle simulation; no Canvas 2D or WebGL fallback
-- 🎨 **Multiple effects** — Scatter, Fireworks and Vortex. More to follow in time.
+- 🎨 **Multiple effects** — Scatter Fade, Scatter Swirl, Fireworks and Boids. More to follow in time.
 - 📦 **Zero runtime dependencies**
 - 🔌 **Flexible emitters** — Point, circle, and rectangle emitter types
 - 🧩 **Typed API** — Full TypeScript declarations included
@@ -20,7 +20,7 @@ A TypeScript library of GPU-accelerated particle effects built on the [WebGPU AP
 ## Requirements
 
 - A browser with [WebGPU support](https://caniuse.com/webgpu) (Chrome 113+, Edge 113+)
-- Node.js 18+ (for build tooling)
+- Node.js 22.18+ (for build tooling; required by tsup 9)
 
 ---
 
@@ -72,32 +72,57 @@ engine.resume();
 
 ## Effects
 
-| Effect         | Description                                                                                         |
-| -------------- | --------------------------------------------------------------------------------------------------- |
-| `scatter-fade` | Particles emitted from a point with gravity, fading out over their lifetime                         |
-| `fireworks`    | Two-phase effect: rockets launch upward, then burst into radial sparks with motion-trail stretching |
-| `vortex-fade`  | Particles spiral inward/outward around a central attractor                                          |
+Each effect is a class passed to `init()`. Every effect takes a maximum particle count (1 to 100,000).
+
+| Class                | Description                                                                                         |
+| -------------------- | --------------------------------------------------------------------------------------------------- |
+| `ScatterFadeEffect`  | Particles burst out from the emitter, fall under gravity and fade out over their lifetime           |
+| `ScatterSwirlEffect` | Particles spiral around the emitter like a vortex, inner particles spinning fastest                 |
+| `FireworksEffect`    | Two-phase effect: rockets launch upward, then burst into radial sparks with motion-trail stretching |
+| `BoidsEffect`        | Flocking simulation (separation, alignment, cohesion) with tunable radii, weights, speed and force  |
+
+```ts
+new ScatterFadeEffect(max_particles);
+new ScatterSwirlEffect(max_particles);
+new FireworksEffect(max_particles, rocket_count); // rocket_count <= max_particles / 2
+new BoidsEffect(
+  max_particles,
+  perception_radius,
+  separation_radius,
+  separation_weight,
+  alignment_weight,
+  cohesion_weight,
+  max_speed,
+  max_force,
+);
+```
+
+`init()` validates the effect and emitter before starting and rejects invalid values with a message.
 
 ---
 
-## Emitter Types
+## Emitters
+
+Emitters are described with an `EmitterConfig`: a shape, a position in canvas pixels, and two shape parameters (`null` where unused).
 
 ```ts
 // Point emitter
-{ type: 'point', position: [x, y] }
+new EmitterConfig(EmitterShape.Point, [x, y], null, null);
 
-// Circle emitter — particles spawn anywhere within the radius
-{ type: 'circle', position: [x, y], radius: number }
+// Circle emitter: particles spawn anywhere within the radius
+new EmitterConfig(EmitterShape.Circle, [x, y], radius, null);
 
-// Rect emitter — particles spawn anywhere within the bounds
-{ type: 'rect', position: [x, y], width: number, height: number }
+// Rectangle emitter: particles spawn anywhere within the bounds
+new EmitterConfig(EmitterShape.Rectangle, [x, y], width, height);
 ```
+
+A running engine can move or reshape its emitter with `engine.update_emitter(new EmitterConfigPatch(...))`, where any field left `null` keeps its current value.
 
 ---
 
 ## Shader Parameters
 
-Each effect exposes up to five generic shader parameter slots (`sp0`–`sp4`) for tuning behaviour at runtime without recompiling shaders. Refer to each effect's documentation for what each slot controls.
+Each effect can use up to eleven generic shader parameter slots (`sp0`–`sp10`), filled from the effect's settings by its `get_shader_params()` method. Each shader declares only the slots it reads (Boids uses `sp0`–`sp6`; Fireworks and Scatter Swirl use the first few).
 
 The uniforms layout passed to every shader is:
 
@@ -110,7 +135,7 @@ The uniforms layout passed to every shader is:
 | `emitterType` | `f32`   | Discriminant for emitter shape |
 | `emitterP1`   | `f32`   | Emitter shape parameter 1      |
 | `emitterP2`   | `f32`   | Emitter shape parameter 2      |
-| `sp0`–`sp4`   | `f32`   | Per-effect shader parameters   |
+| `sp0`–`sp10`  | `f32`   | Per-effect shader parameters   |
 
 ---
 
@@ -163,6 +188,7 @@ webgpu-particles/
 │   │   ├── enums/    # Public enums
 │   │   └── types/    # Public types
 │   └── index.ts      # Public API surface
+├── tests/            # vitest suites
 └── package.json
 ```
 
@@ -172,7 +198,15 @@ webgpu-particles/
 npm run build
 ```
 
-The build pipeline runs `tsup` (produces `.mjs`) and `tsc --emitDeclarationOnly` (produces `.d.ts`) in parallel via `concurrently`. Output is written to `dist/` and then pushed to the [`webgpu-particles-dist`](https://github.com/stamps9k/webgpu-particles-dist) repo for npm installation.
+The build runs `tsup` (produces `.mjs`), then `tsc --emitDeclarationOnly` (produces `.d.ts`), then writes a trimmed `dist/package.json`. `npm run dev` runs the same two steps in watch mode in parallel via `concurrently`. Output is written to `dist/` and then pushed to the [`webgpu-particles-dist`](https://github.com/stamps9k/webgpu-particles-dist) repo for npm installation.
+
+### Tests
+
+```bash
+npx vitest run
+```
+
+The vitest suites in `tests/` cover the CPU-side code: validation, effect settings, particle seeding and shader parameters. Rendering needs a GPU and isn't covered. The pre-commit hook runs them on every commit.
 
 ### Type checking only
 
